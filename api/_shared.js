@@ -17,32 +17,41 @@ function getSql() {
 async function ensureSchema() {
   if (schemaReady) return;
   const db = getSql();
-  await db`
-    create table if not exists spmsp_state (
-      id text primary key,
-      companies jsonb not null default '[]'::jsonb,
-      projects jsonb not null default '[]'::jsonb,
-      updated_at timestamptz not null default now()
-    )
-  `;
+  await ignoreConcurrentSchemaCreate(() => db`
+      create table if not exists spmsp_state (
+        id text primary key,
+        companies jsonb not null default '[]'::jsonb,
+        projects jsonb not null default '[]'::jsonb,
+        updated_at timestamptz not null default now()
+      )
+    `);
   await db`
     insert into spmsp_state (id, companies, projects)
     values ('default', '[]'::jsonb, '[]'::jsonb)
     on conflict (id) do nothing
   `;
-  await db`
-    create table if not exists spmsp_users (
-      email text primary key,
-      name text not null,
-      picture text,
-      role text not null default 'user',
-      status text not null default 'pending',
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now(),
-      last_login_at timestamptz
-    )
-  `;
+  await ignoreConcurrentSchemaCreate(() => db`
+      create table if not exists spmsp_users (
+        email text primary key,
+        name text not null,
+        picture text,
+        role text not null default 'user',
+        status text not null default 'pending',
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        last_login_at timestamptz
+      )
+    `);
   schemaReady = true;
+}
+
+async function ignoreConcurrentSchemaCreate(operation) {
+  try {
+    await operation();
+  } catch (error) {
+    if (error.code === "23505" || String(error.message || "").includes("pg_type_typname_nsp_index")) return;
+    throw error;
+  }
 }
 
 function getSessionSecret() {
