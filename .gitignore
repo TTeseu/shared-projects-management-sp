@@ -5,3 +5,5 @@ dist/
 .env.*
 work/qa-temp/
 work/*.png
+
+.vercel
