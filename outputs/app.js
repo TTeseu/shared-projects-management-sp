@@ -167,11 +167,12 @@ function renderLogin(config) {
     setLoginMessage("Login Google ainda não configurado. Defina GOOGLE_CLIENT_ID na Vercel.");
     return;
   }
-  setLoginMessage("Entre com sua conta Google para solicitar acesso.");
+  setLoginMessage(getLoginStatusMessage() || "Entre com sua conta Google para solicitar acesso.");
   waitForGoogle(() => {
     google.accounts.id.initialize({
       client_id: config.googleClientId,
-      callback: handleGoogleCredential,
+      ux_mode: "redirect",
+      login_uri: `${window.location.origin}/api/auth?action=login_redirect`,
     });
     google.accounts.id.renderButton($("#googleSignInButton"), {
       theme: "outline",
@@ -181,6 +182,19 @@ function renderLogin(config) {
       width: 280,
     });
   });
+}
+
+function getLoginStatusMessage() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("auth");
+  if (!status) return "";
+  params.delete("auth");
+  const query = params.toString();
+  const cleanUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
+  window.history.replaceState({}, "", cleanUrl);
+  if (status === "pending") return "Seu acesso foi solicitado. Aguarde aprovação do administrador.";
+  if (status === "error") return "Não foi possível autenticar com Google. Tente novamente.";
+  return "";
 }
 
 function waitForGoogle(callback, attempts = 0) {

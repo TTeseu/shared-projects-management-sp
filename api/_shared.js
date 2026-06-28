@@ -171,11 +171,20 @@ async function requireAdmin(req) {
 
 async function readBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
-  if (typeof req.body === "string") return JSON.parse(req.body || "{}");
+  const contentType = String(req.headers["content-type"] || "");
+  if (typeof req.body === "string") return parseBodyText(req.body, contentType);
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   const raw = Buffer.concat(chunks).toString("utf8");
-  return raw ? JSON.parse(raw) : {};
+  return parseBodyText(raw, contentType);
+}
+
+function parseBodyText(raw, contentType) {
+  if (!raw) return {};
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    return Object.fromEntries(new URLSearchParams(raw));
+  }
+  return JSON.parse(raw || "{}");
 }
 
 module.exports = {

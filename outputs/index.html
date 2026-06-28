@@ -6,6 +6,21 @@
     <title>Shared Projects Management SP</title>
     <link rel="icon" href="shared-projects-brand-transparent.png" />
     <link rel="stylesheet" href="styles.css" />
+    <script>
+      (() => {
+        const canonicalHost = "shared-project-management-sp.vercel.app";
+        const legacyHosts = new Set([
+          "quero-criar-um-site-com-o.vercel.app",
+          "quero-criar-um-site-com-o-jabasff159-7942s-projects.vercel.app",
+        ]);
+
+        if (legacyHosts.has(window.location.hostname)) {
+          window.location.replace(
+            `https://${canonicalHost}${window.location.pathname}${window.location.search}${window.location.hash}`
+          );
+        }
+      })();
+    </script>
   </head>
   <body>
     <section class="login-screen" id="loginScreen">

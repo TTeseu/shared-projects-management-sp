@@ -79,28 +79,66 @@ async function handleLogin(req, res) {
     return;
   }
 
-  const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-  const ticket = await client.verifyIdToken({
-    idToken: body.credential,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
-  const payload = ticket.getPayload();
-  if (!payload?.email || !payload.email_verified) {
-    res.status(401).json({ error: "Google account email is not verified." });
-    return;
-  }
-
-  const user = await upsertGoogleUser({
-    email: payload.email,
-    name: payload.name || payload.email,
-    picture: payload.picture || "",
-  });
-
+  const user = await loginWithCredential(body.credential);
   if (user.status === "approved") {
     res.setHeader("Set-Cookie", createSessionCookie(user));
   }
 
   res.status(200).json({ user: publicUser(user), approved: user.status === "approved" });
+}
+
+async function handleRedirectLogin(req, res) {
+  try {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      redirectAfterLogin(res, "error");
+      return;
+    }
+
+    const body = await readBody(req);
+    if (!body.credential) {
+      redirectAfterLogin(res, "error");
+      return;
+    }
+
+    const user = await loginWithCredential(body.credential);
+    if (user.status === "approved") {
+      res.setHeader("Set-Cookie", createSessionCookie(user));
+      redirectAfterLogin(res, "approved");
+      return;
+    }
+
+    redirectAfterLogin(res, "pending");
+  } catch (error) {
+    console.error("[auth] redirect login failed", error);
+    redirectAfterLogin(res, "error");
+  }
+}
+
+function redirectAfterLogin(res, status) {
+  const target = status && status !== "approved" ? `/?auth=${encodeURIComponent(status)}` : "/";
+  res.statusCode = 303;
+  res.setHeader("Location", target);
+  res.end();
+}
+
+async function loginWithCredential(credential) {
+  const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  const ticket = await client.verifyIdToken({
+    idToken: credential,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+  const payload = ticket.getPayload();
+  if (!payload?.email || !payload.email_verified) {
+    const error = new Error("Google account email is not verified.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  return upsertGoogleUser({
+    email: payload.email,
+    name: payload.name || payload.email,
+    picture: payload.picture || "",
+  });
 }
 
 async function listUsers(req, res) {
@@ -166,6 +204,11 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "POST" && action === "login") {
       await handleLogin(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && action === "login_redirect") {
+      await handleRedirectLogin(req, res);
       return;
     }
 

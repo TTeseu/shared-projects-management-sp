@@ -1,6 +1,30 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "quero-criar-um-site-com-o.vercel.app"
+        }
+      ],
+      "destination": "https://shared-project-management-sp.vercel.app/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "quero-criar-um-site-com-o-jabasff159-7942s-projects.vercel.app"
+        }
+      ],
+      "destination": "https://shared-project-management-sp.vercel.app/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/data",
