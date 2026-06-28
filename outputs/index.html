@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shared Projects Management SP</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="side-brand">
+          <img src="shared-projects-brand-transparent.png" alt="Shared Projects Management SP" />
+        </div>
+
+        <nav class="main-tabs" aria-label="Menu principal">
+          <button class="tab active" data-tab="dashboard" type="button">
+            <i data-lucide="layout-dashboard"></i>
+            Dashboard
+          </button>
+          <button class="tab" data-tab="project-register" type="button">
+            <i data-lucide="folder-plus"></i>
+            Cadastro de Projetos
+          </button>
+          <button class="tab" data-tab="project-query" type="button">
+            <i data-lucide="search"></i>
+            Consulta de Projetos
+          </button>
+          <button class="tab" data-tab="company-db" type="button">
+            <i data-lucide="building-2"></i>
+            Banco de Empresas
+          </button>
+        </nav>
+
+        <div class="sidebar-section">
+          <span>Atalhos</span>
+          <button class="side-link" type="button">
+            <i data-lucide="file-bar-chart"></i>
+            Relatórios
+          </button>
+          <button class="side-link" id="seedSampleBtn" type="button">
+            <i data-lucide="sparkles"></i>
+            Dados demo
+          </button>
+          <button class="side-link" id="clearDataBtn" type="button">
+            <i data-lucide="trash-2"></i>
+            Limpar dados
+          </button>
+          <button class="side-link" type="button">
+            <i data-lucide="bell"></i>
+            Alertas
+            <b>8</b>
+          </button>
+          <button class="side-link" type="button">
+            <i data-lucide="circle-help"></i>
+            Ajuda
+          </button>
+        </div>
+
+        <div class="side-profile">
+          <div class="profile-row">
+            <div class="profile-avatar">ES</div>
+            <div>
+              <strong>Emerson Silva</strong>
+              <span>Administrador</span>
+            </div>
+            <i data-lucide="chevron-down"></i>
+          </div>
+          <button class="logout" type="button">
+            <i data-lucide="log-out"></i>
+            Sair
+          </button>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button class="icon-only ghost" type="button" aria-label="Menu">
+              <i data-lucide="menu"></i>
+            </button>
+            <div class="breadcrumb">
+              <i data-lucide="chevron-left"></i>
+              <span>Projetos / <b id="breadcrumbCurrent">Dashboard</b></span>
+            </div>
+          </div>
+          <div class="topbar-right">
+            <label class="global-search">
+              <i data-lucide="search"></i>
+              <input placeholder="Buscar projeto, empresa..." />
+            </label>
+            <button class="top-icon" type="button" aria-label="Notificações">
+              <i data-lucide="bell"></i>
+              <span>8</span>
+            </button>
+            <button class="top-icon" type="button" aria-label="Modo escuro">
+              <i data-lucide="moon"></i>
+            </button>
+            <div class="top-avatar">ES</div>
+          </div>
+        </header>
+
+        <main>
+          <section class="tab-panel active" id="dashboard">
+            <div class="page-hero">
+              <div class="hero-copy">
+                <div class="hero-icon">
+                  <i data-lucide="layout-dashboard"></i>
+                </div>
+                <div>
+                  <h1>Dashboard</h1>
+                  <p>Resumo financeiro, alertas de prazo e últimos projetos cadastrados.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="summary-grid dashboard-metrics">
+              <article class="summary-card green money">
+                <div>
+                  <span>Faturamento ativo</span>
+                  <strong id="dashActiveBilling">R$ 0,00</strong>
+                  <small>Ocupação + regularização</small>
+                </div>
+                <i data-lucide="wallet"></i>
+              </article>
+              <article class="summary-card purple money">
+                <div>
+                  <span>Saída por desocupação</span>
+                  <strong id="dashVacancyExit">R$ 0,00</strong>
+                  <small>Valor que sairá do faturamento</small>
+                </div>
+                <i data-lucide="log-out"></i>
+              </article>
+              <article class="summary-card teal">
+                <div>
+                  <span>Projetos ativos</span>
+                  <strong id="dashActiveCount">0</strong>
+                  <small>Ocupação e regularização</small>
+                </div>
+                <i data-lucide="folder-kanban"></i>
+              </article>
+              <article class="summary-card red">
+                <div>
+                  <span>Projetos de desocupação</span>
+                  <strong id="dashVacancyCount">0</strong>
+                  <small>Controle de retirada</small>
+                </div>
+                <i data-lucide="circle-x"></i>
+              </article>
+              <article class="summary-card amber">
+                <div>
+                  <span>Aguardando</span>
+                  <strong id="dashWaitingCount">0</strong>
+                  <small>Prox. 10 dias do 7o dia</small>
+                </div>
+                <i data-lucide="hourglass"></i>
+              </article>
+              <article class="summary-card blue">
+                <div>
+                  <span>Concluidos</span>
+                  <strong id="dashCompletedCount">0</strong>
+                  <small>Projetos finalizados</small>
+                </div>
+                <i data-lucide="circle-check"></i>
+              </article>
+            </div>
+
+            <div class="dashboard-analytics">
+              <section class="table-card chart-card status-chart-card">
+                <div class="table-toolbar">
+                  <div>
+                    <h2>Projetos por status</h2>
+                  </div>
+                  <i data-lucide="more-vertical"></i>
+                </div>
+                <div class="status-chart">
+                  <div class="donut-chart" id="dashStatusDonut">
+                    <strong id="dashTotalProjects">0</strong>
+                    <span>Total</span>
+                  </div>
+                  <div class="chart-legend" id="dashStatusLegend"></div>
+                </div>
+              </section>
+
+              <section class="table-card chart-card">
+                <div class="table-toolbar">
+                  <div>
+                    <h2>Projetos por tipo</h2>
+                  </div>
+                  <i data-lucide="more-vertical"></i>
+                </div>
+                <div class="type-bars" id="dashTypeBars"></div>
+                <div class="chart-legend horizontal">
+                  <span><b class="dot green"></b>Ativos</span>
+                  <span><b class="dot amber"></b>Aguardando</span>
+                  <span><b class="dot blue"></b>Concluidos</span>
+                  <span><b class="dot red"></b>Negados</span>
+                </div>
+              </section>
+
+              <section class="table-card chart-card">
+                <div class="table-toolbar">
+                  <div>
+                    <h2>Evolucao mensal</h2>
+                  </div>
+                  <i data-lucide="more-vertical"></i>
+                </div>
+                <div class="monthly-chart" id="dashMonthlyChart"></div>
+              </section>
+            </div>
+
+            <div class="dashboard-panels">
+              <section class="table-card">
+                <div class="table-toolbar">
+                  <div>
+                    <h2>Aguardando próximo de 10 dias</h2>
+                    <p>Projetos aguardando a partir do 7º dia corrido.</p>
+                  </div>
+                  <span class="panel-count" id="dashWaitingAlertCount">0</span>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table compact">
+                    <thead>
+                      <tr>
+                        <th>Empresa</th>
+                        <th>Projeto</th>
+                        <th>Inicio aguardo</th>
+                        <th>Dias</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashWaitingAlertsTable"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="table-card">
+                <div class="table-toolbar">
+                  <div>
+                    <h2>Desocupação próxima de 90 dias</h2>
+                    <p>Projetos a partir do 70º dia, ainda sem data do envio da carta.</p>
+                  </div>
+                  <span class="panel-count" id="dashVacancyAlertCount">0</span>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table compact">
+                    <thead>
+                      <tr>
+                        <th>Empresa</th>
+                        <th>Projeto</th>
+                        <th>Inicio desocupacao</th>
+                        <th>Dias</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashVacancyAlertsTable"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <section class="quick-actions table-card">
+              <div class="quick-title">
+                <i data-lucide="zap"></i>
+                <strong>Acoes rapidas</strong>
+              </div>
+              <button class="secondary icon-text" type="button" data-dashboard-action="register">
+                <i data-lucide="circle-plus"></i>
+                Cadastrar projeto
+              </button>
+              <button class="secondary icon-text" type="button" data-dashboard-action="import">
+                <i data-lucide="upload"></i>
+                Importar CSV
+              </button>
+              <button class="secondary icon-text" type="button" data-dashboard-action="waiting">
+                <i data-lucide="hourglass"></i>
+                Ver aguardando
+              </button>
+              <button class="secondary icon-text" type="button" data-dashboard-action="vacancy">
+                <i data-lucide="circle-x"></i>
+                Ver desocupacoes
+              </button>
+              <button class="secondary icon-text" type="button" data-dashboard-action="companies">
+                <i data-lucide="building-2"></i>
+                Banco de empresas
+              </button>
+            </section>
+
+            <section class="table-card">
+              <div class="table-toolbar">
+                <div>
+                  <h2>Últimos 5 projetos cadastrados</h2>
+                  <p>Projetos mais recentes adicionados individualmente, em lote ou por importação.</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table compact">
+                  <thead>
+                    <tr>
+                      <th>Empresa</th>
+                      <th>Tipo</th>
+                      <th>Status</th>
+                      <th>Município</th>
+                      <th>Data</th>
+                      <th>Valor multiplicado</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashLatestProjects"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section class="tab-panel" id="project-register">
+            <div class="page-hero">
+              <div class="hero-copy">
+                <div class="hero-icon">
+                  <i data-lucide="folder-kanban"></i>
+                </div>
+                <div>
+                  <h1>Cadastro de Projetos</h1>
+                  <p>Registre projetos individuais ou em lote com cálculo automático e roteamento para consulta.</p>
+                </div>
+              </div>
+              <div class="subtabs" aria-label="Tipo de cadastro">
+                <button class="subtab active" data-register-mode="single" type="button">
+                  <i data-lucide="briefcase-business"></i>
+                  Cadastro individual
+                </button>
+                <button class="subtab" data-register-mode="batch" type="button">
+                  <i data-lucide="copy-plus"></i>
+                  Cadastro em lote
+                </button>
+              </div>
+            </div>
+
+            <div class="summary-grid" id="registerSummaryCards">
+              <article class="metric-card teal">
+                <div>
+                  <span>Empresas cadastradas</span>
+                  <strong id="companyCountNumber">0</strong>
+                  <small>Ativas no sistema</small>
+                </div>
+                <i data-lucide="building-2"></i>
+              </article>
+              <article class="metric-card purple">
+                <div>
+                  <span>Projetos este mês</span>
+                  <strong id="monthProjectCount">0</strong>
+                  <small>+12% vs mês anterior</small>
+                </div>
+                <i data-lucide="trending-up"></i>
+              </article>
+              <article class="metric-card green">
+                <div>
+                  <span>Concluídos</span>
+                  <strong id="completedProjectCount">0</strong>
+                  <small id="completedProjectPercent">0% do total</small>
+                </div>
+                <i data-lucide="circle-check"></i>
+              </article>
+              <article class="metric-card amber">
+                <div>
+                  <span>Aguardando</span>
+                  <strong id="waitingProjectCount">0</strong>
+                  <small>Prazo em aberto</small>
+                </div>
+                <i data-lucide="clock-3"></i>
+              </article>
+              <article class="metric-card red">
+                <div>
+                  <span>Negados</span>
+                  <strong id="deniedProjectCount">0</strong>
+                  <small>Requer atenção</small>
+                </div>
+                <i data-lucide="circle-x"></i>
+              </article>
+            </div>
+            <span class="sr-only" id="companyCountLabel">0 empresas cadastradas</span>
+
+            <section class="register-mode active" id="single-register">
+              <div class="register-layout">
+                <form class="form-grid premium-form" id="singleProjectForm">
+                  <div class="section-title wide-all">
+                    <span></span>
+                    <i data-lucide="circle-dot"></i>
+                    <h2>Dados do Projeto</h2>
+                  </div>
+                  <div class="field span-5 required">
+                    <label for="singleCompany">Empresa</label>
+                    <input id="singleCompany" name="companyName" autocomplete="off" required placeholder="Digite para buscar uma empresa..." />
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="singlePartner">Parceiro</label>
+                    <input id="singlePartner" name="partner" readonly required placeholder="Será preenchido automaticamente" />
+                  </div>
+                  <div class="field span-4 required">
+                    <label for="singlePointValue">Valor do ponto (R$)</label>
+                    <input id="singlePointValue" name="pointValue" readonly required placeholder="Será preenchido automaticamente" />
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="singleOrder">Ordem de venda</label>
+                    <input id="singleOrder" name="order" inputmode="numeric" pattern="[0-9]*" required placeholder="Informe a ordem de venda" />
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="singleLetter">Carta</label>
+                    <input id="singleLetter" name="letter" required placeholder="Informe o número da carta" />
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="singleCity">Município</label>
+                    <select id="singleCity" name="city" required></select>
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="singleType">Tipo</label>
+                    <select id="singleType" name="type" required></select>
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="singleOpinion">Parecer</label>
+                    <select id="singleOpinion" name="opinion" required></select>
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="singleStatus">Status</label>
+                    <select id="singleStatus" name="status" required></select>
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="singleMainDate" id="singleMainDateLabel">Data do envio da carta</label>
+                    <input id="singleMainDate" name="mainDate" type="date" required />
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="singleMonth">Mês de referência</label>
+                    <select id="singleMonth" name="month" required></select>
+                  </div>
+                  <div class="field span-4 required">
+                    <label for="singlePoles">Quantidade de postes</label>
+                    <input id="singlePoles" name="poles" type="number" min="1" step="1" required placeholder="Informe a quantidade" />
+                  </div>
+                  <div class="finance-card span-8">
+                    <div>
+                      <label for="singleMultiplied">Valor multiplicado (R$)</label>
+                      <strong id="singleMultipliedDisplay">R$ 0,00</strong>
+                      <p>Calculado automaticamente: Quantidade × Valor do ponto</p>
+                    </div>
+                    <i data-lucide="calculator"></i>
+                    <input id="singleMultiplied" name="multiplied" readonly required tabindex="-1" aria-hidden="true" />
+                  </div>
+                  <div class="field span-6 hidden" id="singleReasonField">
+                    <label for="singleReason">Observação/Motivo da negativa</label>
+                    <select id="singleReason"></select>
+                  </div>
+                  <div class="form-actions wide-all split-actions">
+                    <button class="secondary icon-text" type="reset">
+                      <i data-lucide="rotate-ccw"></i>
+                      Limpar formulário
+                    </button>
+                    <button class="primary icon-text" type="submit">
+                      <i data-lucide="save"></i>
+                      Salvar projeto
+                    </button>
+                  </div>
+                </form>
+
+                <aside class="help-rail">
+                  <article class="assist-card">
+                    <h2>Como funciona</h2>
+                    <div class="step">
+                      <span>1</span>
+                      <div>
+                        <strong>Selecione a empresa</strong>
+                        <p>Busque e selecione uma empresa para preencher os dados automaticamente.</p>
+                      </div>
+                    </div>
+                    <div class="step">
+                      <span>2</span>
+                      <div>
+                        <strong>Preencha os dados</strong>
+                        <p>Informe os dados do projeto com atenção. Todos os campos obrigatórios são necessários.</p>
+                      </div>
+                    </div>
+                    <div class="step">
+                      <span>3</span>
+                      <div>
+                        <strong>Salve o projeto</strong>
+                        <p>Confira as informações e salve o projeto para enviá-lo para consulta.</p>
+                      </div>
+                    </div>
+                  </article>
+                  <article class="assist-card formula-card">
+                    <h2>Cálculo automático</h2>
+                    <p>Valor multiplicado =<br />Quantidade de postes ×<br />Valor do ponto da empresa</p>
+                    <i data-lucide="badge-dollar-sign"></i>
+                  </article>
+                </aside>
+              </div>
+            </section>
+
+            <section class="register-mode" id="batch-register">
+              <form id="batchProjectForm" class="dark-section">
+                <div class="form-grid premium-form">
+                  <div class="section-title wide-all">
+                    <span></span>
+                    <i data-lucide="layers"></i>
+                    <h2>Dados comuns do lote</h2>
+                  </div>
+                  <div class="field span-5 required">
+                    <label for="batchCompany">Empresa</label>
+                    <input id="batchCompany" autocomplete="off" required placeholder="Digite para buscar uma empresa..." />
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="batchPartner">Parceiro</label>
+                    <input id="batchPartner" readonly required placeholder="Automático" />
+                  </div>
+                  <div class="field span-4 required">
+                    <label for="batchPointValue">Valor do ponto (R$)</label>
+                    <input id="batchPointValue" readonly required placeholder="Automático" />
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="batchType">Tipo</label>
+                    <select id="batchType" required></select>
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="batchOpinion">Parecer</label>
+                    <select id="batchOpinion" required></select>
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="batchStatus">Status</label>
+                    <select id="batchStatus" required></select>
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="batchMainDate" id="batchMainDateLabel">Data do envio da carta</label>
+                    <input id="batchMainDate" type="date" required />
+                  </div>
+                  <div class="field span-3 required">
+                    <label for="batchMonth">Mês de referência</label>
+                    <select id="batchMonth" required></select>
+                  </div>
+                  <div class="field span-5 hidden" id="batchReasonField">
+                    <label for="batchReason">Observação/Motivo da negativa</label>
+                    <select id="batchReason"></select>
+                  </div>
+                  <label class="check-row span-4">
+                    <input id="sameCityToggle" type="checkbox" checked />
+                    <span>Todos os projetos possuem o mesmo município</span>
+                  </label>
+                  <div class="field span-4" id="batchSharedCityField">
+                    <label for="batchSharedCity">Município do lote</label>
+                    <select id="batchSharedCity"></select>
+                  </div>
+                </div>
+
+                <div class="table-toolbar">
+                  <div>
+                    <h2>Projetos do lote</h2>
+                    <p>Cada linha representa um projeto.</p>
+                  </div>
+                  <button class="secondary icon-text" id="addBatchRowBtn" type="button">
+                    <i data-lucide="plus"></i>
+                    Adicionar linha
+                  </button>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table compact" id="batchRowsTable">
+                    <thead>
+                      <tr>
+                        <th>Ordem de venda</th>
+                        <th>Carta</th>
+                        <th>Quantidade de postes</th>
+                        <th class="batch-city-col">Município</th>
+                        <th>Valor multiplicado</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="batchRowsBody"></tbody>
+                  </table>
+                </div>
+                <div class="form-actions split-actions">
+                  <span></span>
+                  <button class="primary icon-text" type="submit">
+                    <i data-lucide="layers"></i>
+                    Salvar lote
+                  </button>
+                </div>
+              </form>
+            </section>
+          </section>
+
+          <section class="tab-panel" id="project-query">
+            <div class="page-hero">
+              <div class="hero-copy">
+                <div class="hero-icon">
+                  <i data-lucide="search-check"></i>
+                </div>
+                <div>
+                  <h1>Consulta de Projetos</h1>
+                  <p>Consulte, filtre, edite, importe e exporte a base de projetos.</p>
+                </div>
+              </div>
+              <div class="button-group">
+                <label class="secondary icon-text file-button">
+                  <i data-lucide="upload"></i>
+                  Importar CSV
+                  <input id="projectImportInput" type="file" accept=".csv,text/csv" hidden />
+                </label>
+                <button class="secondary icon-text" id="projectExportBtn" type="button">
+                  <i data-lucide="download"></i>
+                  Exportar CSV
+                </button>
+              </div>
+            </div>
+
+            <div class="summary-grid" id="summaryCards"></div>
+
+            <section class="filters-panel">
+              <div class="filter-head">
+                <h2>Filtros avançados</h2>
+                <button class="ghost icon-text" id="clearFiltersBtn" type="button">
+                  <i data-lucide="x"></i>
+                  Limpar filtros
+                </button>
+              </div>
+              <div class="filters-grid">
+                <div class="field"><label for="filterCompany">Empresa</label><input id="filterCompany" autocomplete="off" placeholder="Digite para buscar empresa" /></div>
+                <div class="field"><label for="filterOrder">Ordem de venda</label><input id="filterOrder" /></div>
+                <div class="field"><label for="filterLetter">Carta</label><input id="filterLetter" /></div>
+                <div class="field"><label for="filterCity">Município</label><select id="filterCity"></select></div>
+                <div class="field"><label for="filterType">Tipo</label><select id="filterType"></select></div>
+                <div class="field"><label for="filterOpinion">Parecer</label><select id="filterOpinion"></select></div>
+                <div class="field"><label for="filterMonth">Mês de referência</label><select id="filterMonth"></select></div>
+                <div class="field"><label for="filterYear">Ano</label><select id="filterYear"></select></div>
+                <div class="field"><label for="filterReason">Motivo da negativa</label><select id="filterReason"></select></div>
+                <label class="check-row small"><input id="filterFinalized" type="checkbox" /> <span>Projetos finalizados</span></label>
+                <label class="check-row small"><input id="filterAlerts" type="checkbox" /> <span>Projetos com alerta</span></label>
+              </div>
+            </section>
+
+            <div class="query-tabs" aria-label="Janelas de consulta">
+              <button class="query-tab active" data-section="occupation" type="button">Ocupação/Regularização <span>0</span></button>
+              <button class="query-tab" data-section="vacancy" type="button">Desocupação <span>0</span></button>
+              <button class="query-tab" data-section="waiting" type="button">Aguardando <span>0</span></button>
+              <button class="query-tab" data-section="denied" type="button">Negados <span>0</span></button>
+            </div>
+
+            <section class="table-card">
+              <div class="table-toolbar">
+                <div>
+                  <h2 id="querySectionTitle">Ocupação/Regularização</h2>
+                  <p id="querySectionSubtitle">Projetos concluídos de ocupação e regularização.</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table" id="projectsTable">
+                  <thead id="projectsTableHead"></thead>
+                  <tbody id="projectsTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section class="tab-panel" id="company-db">
+            <div class="page-hero">
+              <div class="hero-copy">
+                <div class="hero-icon">
+                  <i data-lucide="building-2"></i>
+                </div>
+                <div>
+                  <h1>Banco de Empresas</h1>
+                  <p>Cadastre, edite, importe e exporte empresas usadas nos projetos.</p>
+                </div>
+              </div>
+              <div class="button-group">
+                <label class="secondary icon-text file-button">
+                  <i data-lucide="upload"></i>
+                  Importar CSV
+                  <input id="companyImportInput" type="file" accept=".csv,text/csv" hidden />
+                </label>
+                <button class="secondary icon-text" id="companyExportBtn" type="button">
+                  <i data-lucide="download"></i>
+                  Exportar CSV
+                </button>
+              </div>
+            </div>
+
+            <div class="summary-grid company-metrics">
+              <article class="metric-card teal">
+                <div>
+                  <span>Empresas cadastradas</span>
+                  <strong id="companyDbCountNumber">0</strong>
+                  <small>Ativas no sistema</small>
+                </div>
+                <i data-lucide="building-2"></i>
+              </article>
+              <article class="metric-card green">
+                <div>
+                  <span>Base de parceiros</span>
+                  <strong>CSV</strong>
+                  <small>Importação e exportação</small>
+                </div>
+                <i data-lucide="file-spreadsheet"></i>
+              </article>
+              <article class="metric-card purple">
+                <div>
+                  <span>Integração</span>
+                  <strong>Auto</strong>
+                  <small>Cadastro de projetos</small>
+                </div>
+                <i data-lucide="workflow"></i>
+              </article>
+            </div>
+
+            <form class="form-grid premium-form company-form" id="companyForm">
+              <input id="companyEditId" type="hidden" />
+              <div class="section-title wide-all">
+                <span></span>
+                <i data-lucide="building"></i>
+                <h2>Cadastro de Empresa</h2>
+              </div>
+              <div class="field span-5 required">
+                <label for="companyName">Nome da empresa</label>
+                <input id="companyName" required placeholder="Informe o nome da empresa" />
+              </div>
+              <div class="field span-3 required">
+                <label for="companyPartner">Número do parceiro</label>
+                <input id="companyPartner" required placeholder="Informe o parceiro" />
+              </div>
+              <div class="field span-3 required">
+                <label for="companyPointValue">Valor do ponto</label>
+                <input id="companyPointValue" inputmode="decimal" required placeholder="10,00" />
+              </div>
+              <div class="form-actions span-12 split-actions">
+                <button class="secondary icon-text hidden" id="cancelCompanyEditBtn" type="button">
+                  <i data-lucide="x"></i>
+                  Cancelar edição
+                </button>
+                <button class="primary icon-text" type="submit">
+                  <i data-lucide="save"></i>
+                  Salvar empresa
+                </button>
+              </div>
+            </form>
+
+            <section class="table-card">
+              <div class="table-toolbar">
+                <div>
+                  <h2>Empresas cadastradas</h2>
+                  <p>Base usada pelo autocomplete do cadastro de projetos.</p>
+                </div>
+                <div class="field search-small">
+                  <label for="companySearch">Pesquisar</label>
+                  <input id="companySearch" placeholder="Nome, parceiro ou valor" />
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table" id="companiesTable">
+                  <thead>
+                    <tr>
+                      <th>Nome da empresa</th>
+                      <th>Número do parceiro</th>
+                      <th>Valor do ponto</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="companiesTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+        </main>
+
+        <footer class="app-footer">© 2026 Shared Projects Management SP. Todos os direitos reservados.</footer>
+      </div>
+    </div>
+
+    <datalist id="companyOptions"></datalist>
+
+    <div class="modal-backdrop" id="confirmModal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal">
+        <div class="modal-icon"><i data-lucide="circle-help"></i></div>
+        <h2 id="confirmTitle">Confirmação</h2>
+        <p id="confirmMessage">Confirma que todas as informações estão corretas?</p>
+        <div class="modal-actions">
+          <button class="secondary" id="confirmCancelBtn" type="button">Cancelar</button>
+          <button class="primary" id="confirmOkBtn" type="button">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="editProjectModal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal large">
+        <div class="modal-title-row">
+          <h2>Editar projeto</h2>
+          <button class="icon-only ghost" id="closeEditProjectBtn" type="button" aria-label="Fechar">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <form class="form-grid premium-form" id="editProjectForm">
+          <input id="editProjectId" type="hidden" />
+          <div class="field span-5 required">
+            <label for="editCompany">Empresa</label>
+            <input id="editCompany" autocomplete="off" required />
+          </div>
+          <div class="field span-3 required"><label for="editPartner">Parceiro</label><input id="editPartner" readonly required /></div>
+          <div class="field span-4 required"><label for="editPointValue">Valor do ponto</label><input id="editPointValue" readonly required /></div>
+          <div class="field span-3 required"><label for="editOrder">Ordem de venda</label><input id="editOrder" inputmode="numeric" pattern="[0-9]*" required /></div>
+          <div class="field span-3 required"><label for="editLetter">Carta</label><input id="editLetter" required /></div>
+          <div class="field span-3 required"><label for="editCity">Município</label><select id="editCity" required></select></div>
+          <div class="field span-3 required"><label for="editType">Tipo</label><select id="editType" required></select></div>
+          <div class="field span-3 required"><label for="editOpinion">Parecer</label><select id="editOpinion" required></select></div>
+          <div class="field span-3 required"><label for="editStatus">Status</label><select id="editStatus" required></select></div>
+          <div class="field span-3 required"><label for="editMainDate" id="editMainDateLabel">Data do envio da carta</label><input id="editMainDate" type="date" required /></div>
+          <div class="field span-3 required"><label for="editMonth">Mês de referência</label><select id="editMonth" required></select></div>
+          <div class="field span-3 required"><label for="editPoles">Quantidade de postes</label><input id="editPoles" type="number" min="1" step="1" required /></div>
+          <div class="field span-3 required"><label for="editMultiplied">Valor multiplicado</label><input id="editMultiplied" readonly required /></div>
+          <div class="field span-6" id="editVacancyLetterField">
+            <label for="editVacancyLetterDate">Data do envio da carta</label>
+            <input id="editVacancyLetterDate" type="date" />
+          </div>
+          <div class="field span-6" id="editReasonField">
+            <label for="editReason">Observação/Motivo da negativa</label>
+            <select id="editReason"></select>
+          </div>
+          <div class="form-actions wide-all split-actions">
+            <span></span>
+            <button class="primary icon-text" type="submit"><i data-lucide="save"></i>Salvar alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="denyModal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal">
+        <h2>Mover para Negados</h2>
+        <p>Informe o motivo da negativa para concluir a alteração.</p>
+        <div class="field">
+          <label for="denyReason">Observação/Motivo da negativa</label>
+          <select id="denyReason"></select>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary" id="denyCancelBtn" type="button">Cancelar</button>
+          <button class="danger" id="denyConfirmBtn" type="button">Confirmar negativa</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-area" id="toastArea" aria-live="polite"></div>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
