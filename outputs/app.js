@@ -172,7 +172,7 @@ function renderLogin(config) {
     google.accounts.id.initialize({
       client_id: config.googleClientId,
       ux_mode: "redirect",
-      login_uri: `${window.location.origin}/api/auth?action=login_redirect`,
+      login_uri: `${window.location.origin}/api/google-login`,
     });
     google.accounts.id.renderButton($("#googleSignInButton"), {
       theme: "outline",

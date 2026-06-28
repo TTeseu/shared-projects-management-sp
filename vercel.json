@@ -27,6 +27,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/google-login",
+      "destination": "/api/auth?action=login_redirect"
+    },
+    {
       "source": "/api/data",
       "destination": "/api/data"
     },
