@@ -1,6 +1,5 @@
 const crypto = require("node:crypto");
 const { neon } = require("@neondatabase/serverless");
-const { parse, serialize } = require("cookie");
 
 let sql;
 let schemaReady = false;
@@ -69,7 +68,7 @@ function createSessionCookie(user) {
     })
   );
   const token = `${payload}.${sign(payload)}`;
-  return serialize("spmsp_session", token, {
+  return serializeCookie("spmsp_session", token, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
@@ -79,7 +78,7 @@ function createSessionCookie(user) {
 }
 
 function clearSessionCookie() {
-  return serialize("spmsp_session", "", {
+  return serializeCookie("spmsp_session", "", {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
@@ -89,7 +88,7 @@ function clearSessionCookie() {
 }
 
 function readSession(req) {
-  const cookies = parse(req.headers.cookie || "");
+  const cookies = parseCookies(req.headers.cookie || "");
   const token = cookies.spmsp_session;
   if (!token || !token.includes(".")) return null;
   const [payload, signature] = token.split(".");
@@ -101,6 +100,31 @@ function readSession(req) {
   } catch {
     return null;
   }
+}
+
+function parseCookies(header) {
+  return String(header || "")
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .reduce((cookies, part) => {
+      const index = part.indexOf("=");
+      if (index === -1) return cookies;
+      const key = part.slice(0, index).trim();
+      const value = part.slice(index + 1).trim();
+      cookies[key] = decodeURIComponent(value);
+      return cookies;
+    }, {});
+}
+
+function serializeCookie(name, value, options = {}) {
+  const parts = [`${name}=${encodeURIComponent(value)}`];
+  if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
+  if (options.path) parts.push(`Path=${options.path}`);
+  if (options.httpOnly) parts.push("HttpOnly");
+  if (options.secure) parts.push("Secure");
+  if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
+  return parts.join("; ");
 }
 
 async function getUserFromSession(req) {
