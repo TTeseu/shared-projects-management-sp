@@ -6,7 +6,8 @@
     "build": "node -e \"require('fs').mkdirSync('dist',{recursive:true}); require('fs').cpSync('outputs','dist',{recursive:true});\""
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.4"
-  },
-  "devDependencies": {}
+    "@neondatabase/serverless": "^0.10.4",
+    "cookie": "^2.0.0",
+    "google-auth-library": "^10.9.0"
+  }
 }

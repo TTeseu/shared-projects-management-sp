@@ -1,44 +1,4 @@
-const { neon } = require("@neondatabase/serverless");
-
-let sql;
-let schemaReady = false;
-
-function getSql() {
-  if (!process.env.DATABASE_URL) {
-    const error = new Error("DATABASE_URL is not configured.");
-    error.statusCode = 500;
-    throw error;
-  }
-  if (!sql) sql = neon(process.env.DATABASE_URL);
-  return sql;
-}
-
-async function ensureSchema() {
-  if (schemaReady) return;
-  await getSql()`
-    create table if not exists spmsp_state (
-      id text primary key,
-      companies jsonb not null default '[]'::jsonb,
-      projects jsonb not null default '[]'::jsonb,
-      updated_at timestamptz not null default now()
-    )
-  `;
-  await getSql()`
-    insert into spmsp_state (id, companies, projects)
-    values ('default', '[]'::jsonb, '[]'::jsonb)
-    on conflict (id) do nothing
-  `;
-  schemaReady = true;
-}
-
-async function readBody(req) {
-  if (req.body && typeof req.body === "object") return req.body;
-  if (typeof req.body === "string") return JSON.parse(req.body || "{}");
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const raw = Buffer.concat(chunks).toString("utf8");
-  return raw ? JSON.parse(raw) : {};
-}
+const { ensureSchema, getSql, readBody, requireApprovedUser } = require("./_shared");
 
 function validatePayload(payload) {
   if (!payload || !Array.isArray(payload.companies) || !Array.isArray(payload.projects)) {
@@ -53,6 +13,7 @@ module.exports = async function handler(req, res) {
 
   try {
     await ensureSchema();
+    await requireApprovedUser(req);
 
     if (req.method === "GET") {
       const rows = await getSql()`

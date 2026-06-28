@@ -59,6 +59,63 @@ body::before {
   z-index: 0;
 }
 
+.login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 70% 12%, rgba(33, 199, 168, 0.18), transparent 30%),
+    linear-gradient(135deg, #070d12, #0e151c 58%, #081016);
+}
+
+.login-screen.hidden,
+.app-shell.auth-hidden {
+  display: none;
+}
+
+.login-card {
+  width: min(440px, 100%);
+  padding: 34px;
+  border: 1px solid rgba(36, 49, 61, 0.95);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent 52%),
+    rgba(17, 26, 34, 0.92);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+  text-align: center;
+}
+
+.login-card img {
+  width: 235px;
+  max-width: 86%;
+  margin-bottom: 18px;
+}
+
+.login-card h1 {
+  margin: 0 0 10px;
+  font-size: 26px;
+}
+
+.login-card p,
+.login-message {
+  color: var(--muted);
+}
+
+.google-login-slot {
+  display: grid;
+  justify-content: center;
+  min-height: 44px;
+  margin: 24px 0 16px;
+}
+
+.login-message {
+  min-height: 22px;
+  font-size: 14px;
+}
+
 button,
 input,
 select {
@@ -1434,6 +1491,27 @@ input[readonly] {
 
 .table-actions button {
   min-height: 36px;
+}
+
+.user-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-cell > span {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--teal);
+  background: rgba(33, 199, 168, 0.12);
+  font-weight: 900;
+}
+
+.user-cell strong {
+  color: var(--text);
 }
 
 .badge {

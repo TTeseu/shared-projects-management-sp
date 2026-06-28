@@ -8,7 +8,17 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+    <section class="login-screen" id="loginScreen">
+      <div class="login-card">
+        <img src="shared-projects-brand-transparent.png" alt="Shared Projects Management SP" />
+        <h1>Shared Projects Management SP</h1>
+        <p>Acesse com sua conta Google. Novos usuários precisam de aprovação do administrador.</p>
+        <div id="googleSignInButton" class="google-login-slot"></div>
+        <div class="login-message" id="loginMessage">Carregando autenticação...</div>
+      </div>
+    </section>
+
+    <div class="app-shell auth-hidden">
       <aside class="sidebar">
         <div class="side-brand">
           <img src="shared-projects-brand-transparent.png" alt="Shared Projects Management SP" />
@@ -30,6 +40,10 @@
           <button class="tab" data-tab="company-db" type="button">
             <i data-lucide="building-2"></i>
             Banco de Empresas
+          </button>
+          <button class="tab admin-only hidden" data-tab="user-admin" type="button">
+            <i data-lucide="users"></i>
+            Usuários
           </button>
         </nav>
 
@@ -60,14 +74,14 @@
 
         <div class="side-profile">
           <div class="profile-row">
-            <div class="profile-avatar">ES</div>
+            <div class="profile-avatar" id="profileAvatar">--</div>
             <div>
-              <strong>Emerson Silva</strong>
-              <span>Administrador</span>
+              <strong id="profileName">Usuário</strong>
+              <span id="profileRole">Aguardando</span>
             </div>
             <i data-lucide="chevron-down"></i>
           </div>
-          <button class="logout" type="button">
+          <button class="logout" id="logoutBtn" type="button">
             <i data-lucide="log-out"></i>
             Sair
           </button>
@@ -763,6 +777,48 @@
               </div>
             </section>
           </section>
+
+          <section class="tab-panel" id="user-admin">
+            <div class="page-hero">
+              <div class="hero-copy">
+                <div class="hero-icon">
+                  <i data-lucide="users"></i>
+                </div>
+                <div>
+                  <h1>Usuários</h1>
+                  <p>Aprove ou bloqueie usuários que solicitaram acesso ao sistema.</p>
+                </div>
+              </div>
+              <button class="secondary icon-text" id="refreshUsersBtn" type="button">
+                <i data-lucide="refresh-cw"></i>
+                Atualizar
+              </button>
+            </div>
+
+            <section class="table-card">
+              <div class="table-toolbar">
+                <div>
+                  <h2>Controle de acesso</h2>
+                  <p>Somente usuários aprovados conseguem acessar as telas internas.</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table compact">
+                  <thead>
+                    <tr>
+                      <th>Usuário</th>
+                      <th>E-mail</th>
+                      <th>Status</th>
+                      <th>Perfil</th>
+                      <th>Último login</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
         </main>
 
         <footer class="app-footer">© 2026 Shared Projects Management SP. Todos os direitos reservados.</footer>
@@ -842,6 +898,7 @@
 
     <div class="toast-area" id="toastArea" aria-live="polite"></div>
 
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="app.js"></script>
   </body>

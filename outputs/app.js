@@ -65,6 +65,12 @@ const state = {
   currentSection: "occupation",
   batchRowId: 0,
   pendingDenyId: null,
+  appStarted: false,
+};
+
+const authState = {
+  user: null,
+  googleClientId: "",
 };
 
 const remoteSync = {
@@ -95,7 +101,17 @@ const sectionCopy = {
 
 document.addEventListener("DOMContentLoaded", init);
 
-function init() {
+async function init() {
+  const authenticated = await initAuth();
+  if (authenticated) startApp();
+}
+
+function startApp() {
+  if (state.appStarted) {
+    renderAll();
+    return;
+  }
+  state.appStarted = true;
   populateSelects();
   bindNavigation();
   bindCompanyForm();
@@ -103,10 +119,132 @@ function init() {
   bindQueryControls();
   bindModals();
   bindUtilityActions();
+  bindUserAdmin();
   addBatchRow();
   renderAll();
   refreshIcons();
   loadRemoteData();
+}
+
+async function initAuth() {
+  if (!remoteSync.enabled) {
+    authState.user = { name: "Administrador Local", email: "local@spmsp", role: "admin", status: "approved" };
+    unlockApp();
+    return true;
+  }
+
+  try {
+    const [configResponse, sessionResponse] = await Promise.all([
+      fetch("/api/auth?action=config", { cache: "no-store" }),
+      fetch("/api/auth?action=session", { cache: "no-store" }),
+    ]);
+    const config = await configResponse.json();
+    const session = await sessionResponse.json();
+    authState.googleClientId = config.googleClientId || "";
+
+    if (session.approved && session.user) {
+      authState.user = session.user;
+      unlockApp();
+      return true;
+    }
+
+    renderLogin(config);
+    return false;
+  } catch (error) {
+    setLoginMessage("Não foi possível iniciar o login. Verifique a conexão e tente novamente.");
+    return false;
+  }
+}
+
+function unlockApp() {
+  $(".app-shell")?.classList.remove("auth-hidden");
+  $("#loginScreen")?.classList.add("hidden");
+  updateProfile();
+}
+
+function renderLogin(config) {
+  if (!config.authEnabled || !config.googleClientId) {
+    setLoginMessage("Login Google ainda não configurado. Defina GOOGLE_CLIENT_ID na Vercel.");
+    return;
+  }
+  setLoginMessage("Entre com sua conta Google para solicitar acesso.");
+  waitForGoogle(() => {
+    google.accounts.id.initialize({
+      client_id: config.googleClientId,
+      callback: handleGoogleCredential,
+    });
+    google.accounts.id.renderButton($("#googleSignInButton"), {
+      theme: "outline",
+      size: "large",
+      shape: "pill",
+      text: "signin_with",
+      width: 280,
+    });
+  });
+}
+
+function waitForGoogle(callback, attempts = 0) {
+  if (window.google?.accounts?.id) {
+    callback();
+    return;
+  }
+  if (attempts > 50) {
+    setLoginMessage("Não foi possível carregar o botão do Google. Atualize a página.");
+    return;
+  }
+  setTimeout(() => waitForGoogle(callback, attempts + 1), 100);
+}
+
+async function handleGoogleCredential(response) {
+  setLoginMessage("Validando acesso...");
+  try {
+    const result = await fetch("/api/auth?action=login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ credential: response.credential }),
+    }).then((item) => item.json());
+
+    if (!result.user) {
+      setLoginMessage(result.error || "Não foi possível validar sua conta.");
+      return;
+    }
+
+    if (!result.approved) {
+      setLoginMessage("Seu acesso foi solicitado. Aguarde aprovação do administrador.");
+      return;
+    }
+
+    authState.user = result.user;
+    unlockApp();
+    startApp();
+  } catch (error) {
+    setLoginMessage("Falha ao autenticar com Google. Tente novamente.");
+  }
+}
+
+function setLoginMessage(message) {
+  const target = $("#loginMessage");
+  if (target) target.textContent = message;
+}
+
+function updateProfile() {
+  const user = authState.user;
+  if (!user) return;
+  const initials = getInitials(user.name || user.email);
+  setText("#profileAvatar", initials);
+  setText("#profileName", user.name || user.email);
+  setText("#profileRole", user.role === "admin" ? "Administrador" : "Usuário aprovado");
+  $$(".admin-only").forEach((item) => item.classList.toggle("hidden", user.role !== "admin"));
+}
+
+function getInitials(value) {
+  return String(value || "--")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 }
 
 function loadArray(key) {
@@ -886,6 +1024,18 @@ function bindUtilityActions() {
   });
 }
 
+function bindUserAdmin() {
+  $("#logoutBtn")?.addEventListener("click", logout);
+  $("#refreshUsersBtn")?.addEventListener("click", renderUsersTable);
+}
+
+async function logout() {
+  if (remoteSync.enabled) {
+    await fetch("/api/auth?action=logout", { method: "POST" }).catch(() => {});
+  }
+  location.reload();
+}
+
 function renderAll() {
   renderCompanyOptions();
   renderCompaniesTable();
@@ -893,6 +1043,7 @@ function renderAll() {
   renderYearFilter();
   renderDashboard();
   renderQueryView();
+  if (authState.user?.role === "admin") renderUsersTable();
   refreshIcons();
 }
 
@@ -1140,6 +1291,96 @@ function renderAlertList(selector, projects, getCountLabel) {
 function setText(selector, value) {
   const element = $(selector);
   if (element) element.textContent = value;
+}
+
+async function renderUsersTable() {
+  const body = $("#usersTableBody");
+  if (!body || authState.user?.role !== "admin") return;
+  if (!remoteSync.enabled) {
+    body.innerHTML = `<tr><td colspan="6"><div class="empty-state">Controle de usuários disponível somente no site publicado.</div></td></tr>`;
+    return;
+  }
+  try {
+    const response = await fetch("/api/auth?action=users", { cache: "no-store" });
+    if (!response.ok) throw new Error("Falha ao carregar usuários.");
+    const data = await response.json();
+    const users = data.users || [];
+    if (!users.length) {
+      body.innerHTML = `<tr><td colspan="6"><div class="empty-state">Nenhum usuário encontrado.</div></td></tr>`;
+      return;
+    }
+    body.innerHTML = users
+      .map(
+        (user) => `
+          <tr>
+            <td>
+              <div class="user-cell">
+                <span>${escapeHtml(getInitials(user.name || user.email))}</span>
+                <strong>${escapeHtml(user.name || "-")}</strong>
+              </div>
+            </td>
+            <td>${escapeHtml(user.email)}</td>
+            <td>${userStatusBadge(user.status)}</td>
+            <td>${escapeHtml(user.role === "admin" ? "Administrador" : "Usuário")}</td>
+            <td>${user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString("pt-BR") : "-"}</td>
+            <td>
+              <div class="table-actions">
+                ${
+                  user.status !== "approved"
+                    ? `<button class="secondary icon-text" type="button" data-user-approve="${escapeAttr(user.email)}"><i data-lucide="check"></i>Aprovar</button>`
+                    : ""
+                }
+                ${
+                  user.role !== "admin" && user.status === "approved"
+                    ? `<button class="secondary icon-text" type="button" data-user-admin="${escapeAttr(user.email)}"><i data-lucide="shield"></i>Admin</button>`
+                    : ""
+                }
+                ${
+                  user.email !== authState.user.email
+                    ? `<button class="danger icon-text" type="button" data-user-reject="${escapeAttr(user.email)}"><i data-lucide="ban"></i>Bloquear</button>`
+                    : ""
+                }
+              </div>
+            </td>
+          </tr>
+        `
+      )
+      .join("");
+    $$("[data-user-approve]").forEach((button) =>
+      button.addEventListener("click", () => updateUserAccess(button.dataset.userApprove, "approved", "user"))
+    );
+    $$("[data-user-admin]").forEach((button) =>
+      button.addEventListener("click", () => updateUserAccess(button.dataset.userAdmin, "approved", "admin"))
+    );
+    $$("[data-user-reject]").forEach((button) =>
+      button.addEventListener("click", () => updateUserAccess(button.dataset.userReject, "rejected", "user"))
+    );
+    refreshIcons();
+  } catch (error) {
+    body.innerHTML = `<tr><td colspan="6"><div class="empty-state">Não foi possível carregar usuários.</div></td></tr>`;
+  }
+}
+
+function userStatusBadge(status) {
+  if (status === "approved") return badge("Aprovado", "green");
+  if (status === "pending") return badge("Pendente", "amber");
+  if (status === "rejected") return badge("Bloqueado", "red");
+  return badge(status || "-", "neutral");
+}
+
+async function updateUserAccess(email, status, role) {
+  try {
+    const response = await fetch("/api/auth?action=approve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, status, role }),
+    });
+    if (!response.ok) throw new Error("Falha ao atualizar usuário.");
+    showToast("Usuário atualizado.", "success");
+    renderUsersTable();
+  } catch (error) {
+    showToast("Não foi possível atualizar o usuário.", "error");
+  }
 }
 
 function renderCompaniesTable() {
@@ -1734,6 +1975,7 @@ function updateBreadcrumb(tabId) {
     "project-register": "Cadastro de Projetos",
     "project-query": "Consulta de Projetos",
     "company-db": "Banco de Empresas",
+    "user-admin": "Usuários",
   };
   const target = $("#breadcrumbCurrent");
   if (target) target.textContent = labels[tabId] || "Cadastro de Projetos";
