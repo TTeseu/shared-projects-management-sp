@@ -584,6 +584,21 @@ p {
   margin-bottom: 18px;
 }
 
+.dashboard-panels .table-card {
+  max-height: 380px;
+}
+
+.dashboard-panels .table-wrap {
+  max-height: 272px;
+  overflow-y: auto;
+}
+
+.dashboard-panels .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .panel-count {
   display: inline-grid;
   place-items: center;

@@ -1263,7 +1263,6 @@ function renderDashboardAlertTable(selector, projects, kind) {
     return;
   }
   body.innerHTML = projects
-    .slice(0, 5)
     .map((project) => {
       const days = daysElapsed(project.mainDate);
       return `
