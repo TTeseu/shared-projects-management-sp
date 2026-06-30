@@ -1472,12 +1472,88 @@ input[readonly] {
   border-radius: 10px;
 }
 
+.table-scroll-top {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 18px;
+  margin: 0 0 8px;
+  border: 1px solid rgba(52, 69, 84, 0.7);
+  border-radius: 8px;
+  background: rgba(8, 14, 20, 0.72);
+}
+
+.table-scroll-top > div {
+  height: 1px;
+}
+
+.table-scroll-top.hidden {
+  display: none;
+}
+
 .data-table {
   width: 100%;
   min-width: 1050px;
   border-collapse: separate;
   border-spacing: 0;
   background: rgba(8, 14, 20, 0.65);
+}
+
+.projects-table {
+  min-width: 1320px;
+  table-layout: fixed;
+}
+
+.projects-table .col-company {
+  width: 220px;
+}
+
+.projects-table .col-partner {
+  width: 112px;
+}
+
+.projects-table .col-order {
+  width: 94px;
+}
+
+.projects-table .col-letter {
+  width: 145px;
+}
+
+.projects-table .col-city {
+  width: 190px;
+}
+
+.projects-table .col-type {
+  width: 190px;
+}
+
+.projects-table .col-opinion,
+.projects-table .col-status,
+.projects-table .col-month,
+.projects-table .col-poles {
+  width: 92px;
+}
+
+.projects-table .col-date {
+  width: 142px;
+}
+
+.projects-table .col-value {
+  width: 150px;
+}
+
+.projects-table .col-count,
+.projects-table .col-alert {
+  width: 135px;
+}
+
+.projects-table .col-reason {
+  width: 250px;
+}
+
+.projects-table .col-actions {
+  width: 148px;
 }
 
 .data-table.compact {
@@ -1495,6 +1571,12 @@ input[readonly] {
   text-align: left;
   vertical-align: middle;
   white-space: nowrap;
+}
+
+.projects-table th,
+.projects-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-table th {

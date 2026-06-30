@@ -1013,6 +1013,7 @@ function bindQueryControls() {
   $("#registerProjectImportInput")?.addEventListener("change", importProjects);
   $("#projectExportBtn").addEventListener("click", exportProjects);
   setupProjectCompanyFilterAutocomplete();
+  window.addEventListener("resize", syncProjectsHorizontalScroll);
 }
 
 function bindModals() {
@@ -1552,6 +1553,7 @@ function renderProjectTable() {
   const projects = getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection);
   renderProjectHead();
   renderProjectRows(projects);
+  syncProjectsHorizontalScroll();
   refreshIcons();
 }
 
@@ -1610,7 +1612,54 @@ function renderProjectHead() {
       "Ações",
     ],
   };
-  $("#projectsTableHead").innerHTML = `<tr>${columns[state.currentSection].map((column) => `<th>${column}</th>`).join("")}</tr>`;
+  const activeColumns = columns[state.currentSection];
+  $("#projectsTableCols").innerHTML = activeColumns.map((column) => `<col class="col-${getProjectColumnKey(column)}" />`).join("");
+  $("#projectsTableHead").innerHTML = `<tr>${activeColumns.map((column) => `<th>${column}</th>`).join("")}</tr>`;
+}
+
+function getProjectColumnKey(column) {
+  const map = {
+    Empresa: "company",
+    Parceiro: "partner",
+    Ordem: "order",
+    Carta: "letter",
+    Município: "city",
+    Tipo: "type",
+    Parecer: "opinion",
+    Status: "status",
+    "Data do envio da carta": "date",
+    "Data de solicitação": "date",
+    "Data do envio da notificação": "date",
+    Data: "date",
+    Mês: "month",
+    Postes: "poles",
+    "Valor multiplicado": "value",
+    "Contagem 90 dias": "count",
+    "Contagem 10 dias": "count",
+    "Alerta/Status": "alert",
+    Alerta: "alert",
+    "Motivo da negativa": "reason",
+    Ações: "actions",
+  };
+  return map[column] || "default";
+}
+
+function syncProjectsHorizontalScroll() {
+  const top = $("#projectsScrollTop");
+  const spacer = $("#projectsScrollSpacer");
+  const wrap = $("#projectsTableWrap");
+  const table = $("#projectsTable");
+  if (!top || !spacer || !wrap || !table) return;
+
+  spacer.style.width = `${table.scrollWidth}px`;
+  top.classList.toggle("hidden", table.scrollWidth <= wrap.clientWidth + 2);
+  top.onscroll = () => {
+    if (wrap.scrollLeft !== top.scrollLeft) wrap.scrollLeft = top.scrollLeft;
+  };
+  wrap.onscroll = () => {
+    if (top.scrollLeft !== wrap.scrollLeft) top.scrollLeft = wrap.scrollLeft;
+  };
+  top.scrollLeft = wrap.scrollLeft;
 }
 
 function renderProjectRows(projects) {
