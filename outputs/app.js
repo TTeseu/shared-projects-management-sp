@@ -2305,6 +2305,10 @@ function resolveImportedMainDate(row, type, status) {
           "data do envio da notificação",
           "data do envio da notificacao",
           "data do envio da carta",
+          "data envio da carta",
+          "data envio carta",
+          "data envio carta / pedido cliente",
+          "data do envio da carta / pedido cliente",
           "data principal",
           "data",
         ])
@@ -2318,7 +2322,19 @@ function resolveImportedMainDate(row, type, status) {
       ""
     );
   }
-  return normalizeCsvDate(getCsvValue(row, ["data do envio da carta", "data principal", "data"])) || "";
+  return (
+    normalizeCsvDate(
+      getCsvValue(row, [
+        "data do envio da carta",
+        "data envio da carta",
+        "data envio carta",
+        "data envio carta / pedido cliente",
+        "data do envio da carta / pedido cliente",
+        "data principal",
+        "data",
+      ])
+    ) || ""
+  );
 }
 
 function resolveImportedVacancyLetterDate(row, type) {
@@ -2331,6 +2347,10 @@ function resolveImportedVacancyLetterDate(row, type) {
         "data finalização",
         "data finalizacao",
         "data do envio da carta",
+        "data envio da carta",
+        "data envio carta",
+        "data envio carta / pedido cliente",
+        "data do envio da carta / pedido cliente",
       ])
     ) || ""
   );
