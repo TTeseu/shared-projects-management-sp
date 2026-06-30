@@ -885,9 +885,10 @@ p {
 .metric-card,
 .summary-card {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
   min-height: 126px;
   padding: 22px;
   overflow: hidden;
@@ -911,7 +912,7 @@ p {
   height: 64px;
   border-radius: 50%;
   padding: 18px;
-  flex: 0 0 auto;
+  justify-self: end;
 }
 
 .metric-card span,
@@ -925,6 +926,7 @@ p {
 .metric-card > div,
 .summary-card > div {
   min-width: 0;
+  max-width: 100%;
 }
 
 .metric-card strong,
@@ -937,8 +939,10 @@ p {
 }
 
 .summary-card.money strong {
-  font-size: clamp(23px, 1.75vw, 30px);
+  font-size: clamp(20px, 1.45vw, 28px);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .metric-card small,
