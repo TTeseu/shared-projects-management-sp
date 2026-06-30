@@ -954,10 +954,28 @@ p {
 }
 
 .summary-card.money strong {
-  font-size: clamp(20px, 1.45vw, 28px);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: calc(100% + 54px);
+  font-size: clamp(20px, 1.2vw, 24px);
+  line-height: 1.08;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.summary-card.money > div {
+  grid-column: 1 / -1;
+  padding-right: 48px;
+}
+
+.summary-card.money > i,
+.summary-card.money > svg {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 48px;
+  height: 48px;
+  padding: 13px;
+  transform: translateY(-50%);
 }
 
 .metric-card small,
