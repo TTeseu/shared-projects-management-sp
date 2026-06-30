@@ -1010,6 +1010,7 @@ function bindQueryControls() {
     renderQueryView();
   });
   $("#projectImportInput").addEventListener("change", importProjects);
+  $("#registerProjectImportInput")?.addEventListener("change", importProjects);
   $("#projectExportBtn").addEventListener("click", exportProjects);
   setupProjectCompanyFilterAutocomplete();
 }
@@ -2009,10 +2010,16 @@ function calculateMultiplied(pointValue, poles) {
 
 function parseMoney(value) {
   if (typeof value === "number") return value;
-  const clean = String(value || "")
-    .replace(/[^\d,.-]/g, "")
-    .replace(/\.(?=\d{3}(\D|$))/g, "")
-    .replace(",", ".");
+  let clean = String(value || "").replace(/[^\d,.-]/g, "");
+  const lastComma = clean.lastIndexOf(",");
+  const lastDot = clean.lastIndexOf(".");
+  if (lastComma > -1 && lastDot > -1) {
+    clean = lastComma > lastDot ? clean.replace(/\./g, "").replace(",", ".") : clean.replace(/,/g, "");
+  } else if (lastComma > -1) {
+    clean = clean.replace(",", ".");
+  } else {
+    clean = clean.replace(/\.(?=\d{3}(\D|$))/g, "");
+  }
   const parsed = Number(clean);
   return Number.isFinite(parsed) ? parsed : NaN;
 }
@@ -2196,7 +2203,7 @@ function exportCompanies() {
 }
 
 function importProjects(event) {
-  readCsvFile(event.target.files[0]).then((rows) => {
+  readProjectFile(event.target.files[0]).then((rows) => {
     event.target.value = "";
     if (!rows.length) {
       showToast("Arquivo sem linhas para importar.", "error");
@@ -2357,6 +2364,7 @@ function normalizeFromList(value, list) {
 }
 
 function parseCsvInteger(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.trunc(value);
   const digits = String(value || "").replace(/\D/g, "");
   return digits ? Number(digits) : NaN;
 }
@@ -2396,6 +2404,67 @@ function exportProjects() {
     };
   });
   downloadCsv("projetos-sp.csv", rows, headers);
+}
+
+function readProjectFile(file) {
+  if (!file) return Promise.resolve([]);
+  const extension = getFileExtension(file.name);
+  if (extension === "csv") return readCsvFile(file);
+  if (["xlsx", "xlsm", "xlsxm"].includes(extension)) return readExcelFile(file);
+  showToast("Formato inválido. Use CSV, XLSX ou XLSM.", "error");
+  return Promise.resolve([]);
+}
+
+function getFileExtension(filename) {
+  return String(filename || "").split(".").pop().toLowerCase();
+}
+
+function readExcelFile(file) {
+  return new Promise((resolve) => {
+    if (!window.XLSX) {
+      showToast("Leitor Excel não carregou. Atualize a página e tente novamente.", "error");
+      resolve([]);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const workbook = XLSX.read(reader.result, { type: "array", cellDates: true });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+          resolve([]);
+          return;
+        }
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+          defval: "",
+          raw: false,
+          dateNF: "dd/mm/yyyy",
+        });
+        resolve(rows.map(normalizeImportedRow));
+      } catch (error) {
+        showToast("Não foi possível ler a planilha Excel.", "error");
+        resolve([]);
+      }
+    };
+    reader.onerror = () => {
+      showToast("Não foi possível ler o arquivo.", "error");
+      resolve([]);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function normalizeImportedRow(row) {
+  return Object.entries(row || {}).reduce((result, [key, value]) => {
+    result[keyify(key)] = normalizeImportedCell(value);
+    return result;
+  }, {});
+}
+
+function normalizeImportedCell(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+  return String(value ?? "").trim();
 }
 
 function readCsvFile(file) {
@@ -2466,7 +2535,7 @@ function chooseDelimiter(text) {
 function getCsvValue(row, aliases) {
   for (const alias of aliases) {
     const value = row[keyify(alias)];
-    if (value !== undefined && value !== "") return value.trim();
+    if (value !== undefined && value !== "") return String(value).trim();
   }
   return "";
 }
@@ -2477,11 +2546,18 @@ function keyify(value) {
 
 function normalizeCsvDate(value) {
   if (!value) return "";
-  const trimmed = value.trim();
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const excelEpoch = Date.UTC(1899, 11, 30);
+    const date = new Date(excelEpoch + Math.round(value) * 86400000);
+    return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+  }
+  const trimmed = String(value).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-  const match = trimmed.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  const match = trimmed.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
   if (!match) return "";
-  const [, day, month, year] = match;
+  const [, day, month, rawYear] = match;
+  const year = rawYear.length === 2 ? `20${rawYear}` : rawYear;
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 

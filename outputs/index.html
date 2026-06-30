@@ -302,7 +302,7 @@
               </button>
               <button class="secondary icon-text" type="button" data-dashboard-action="import">
                 <i data-lucide="upload"></i>
-                Importar CSV
+                Importar arquivo
               </button>
               <button class="secondary icon-text" type="button" data-dashboard-action="waiting">
                 <i data-lucide="hourglass"></i>
@@ -366,6 +366,19 @@
                 </button>
               </div>
             </div>
+
+            <section class="import-panel">
+              <div>
+                <span>Importação em massa</span>
+                <strong>Subir projetos por Excel</strong>
+                <p>Importe arquivos .xlsx ou .xlsm. As empresas novas serão criadas automaticamente quando houver Empresa, Parceiro e Valor do ponto.</p>
+              </div>
+              <label class="secondary icon-text file-button">
+                <i data-lucide="file-spreadsheet"></i>
+                Importar XLSX/XLSM
+                <input id="registerProjectImportInput" type="file" accept=".xlsx,.xlsm,.xlsxm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12" hidden />
+              </label>
+            </section>
 
             <div class="summary-grid" id="registerSummaryCards">
               <article class="metric-card teal">
@@ -630,8 +643,8 @@
               <div class="button-group">
                 <label class="secondary icon-text file-button">
                   <i data-lucide="upload"></i>
-                  Importar CSV
-                  <input id="projectImportInput" type="file" accept=".csv,text/csv" hidden />
+                  Importar CSV/XLSX
+                  <input id="projectImportInput" type="file" accept=".csv,.xlsx,.xlsm,.xlsxm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12" hidden />
                 </label>
                 <button class="secondary icon-text" id="projectExportBtn" type="button">
                   <i data-lucide="download"></i>
@@ -918,6 +931,7 @@
     <div class="toast-area" id="toastArea" aria-live="polite"></div>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <script src="app.js"></script>
   </body>
