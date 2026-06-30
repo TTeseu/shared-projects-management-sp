@@ -746,7 +746,7 @@ function toggleReasonField(prefix) {
 }
 
 function resolveDateKind(type, status) {
-  if (status === "Aguardando") return "notification";
+  if (status === "Aguardando" || status === "Negado") return "notification";
   if (type === "Desocupação") return "request";
   return "letter";
 }
@@ -805,6 +805,7 @@ function collectProjectFromPrefix(prefix) {
     poles,
     multipliedValue: calculateMultiplied(company?.pointValue || parseMoney($(`#${prefix}PointValue`).value), poles),
     denialReason: status === "Negado" ? $(`#${prefix}Reason`).value : "",
+    neDate: status === "Negado" ? todayInputValue() : "",
     vacancyLetterDate: "",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -825,6 +826,7 @@ function submitBatchProjects(event) {
     sameCity: $("#sameCityToggle").checked,
     sharedCity: $("#batchSharedCity").value,
     denialReason: $("#batchStatus").value === "Negado" ? $("#batchReason").value : "",
+    neDate: $("#batchStatus").value === "Negado" ? todayInputValue() : "",
   };
 
   const rows = collectBatchRows();
@@ -863,6 +865,7 @@ function submitBatchProjects(event) {
     poles: row.poles,
     multipliedValue: calculateMultiplied(company.pointValue, row.poles),
     denialReason: shared.status === "Negado" ? shared.denialReason : "",
+    neDate: shared.status === "Negado" ? shared.neDate : "",
     vacancyLetterDate: "",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -976,6 +979,9 @@ function validateProject(project, companyLookup = findCompanyByName) {
   if (project.status === "Negado" && !DENIAL_REASONS.includes(project.denialReason)) {
     errors.push("Informe o motivo da negativa.");
   }
+  if (project.status === "Negado" && !project.neDate) {
+    errors.push("Data transformado em NE é obrigatória para projetos negados.");
+  }
   return errors;
 }
 
@@ -1014,6 +1020,7 @@ function bindQueryControls() {
   $("#projectExportBtn").addEventListener("click", exportProjects);
   setupProjectCompanyFilterAutocomplete();
   window.addEventListener("resize", syncProjectsHorizontalScroll);
+  window.addEventListener("scroll", syncProjectsHorizontalScroll, { passive: true });
 }
 
 function bindModals() {
@@ -1606,7 +1613,8 @@ function renderProjectHead() {
       "Município",
       "Tipo",
       "Parecer",
-      "Data",
+      "Data de notificação",
+      "Data transformado em NE",
       "Motivo da negativa",
       "Valor multiplicado",
       "Ações",
@@ -1630,6 +1638,8 @@ function getProjectColumnKey(column) {
     "Data do envio da carta": "date",
     "Data de solicitação": "date",
     "Data do envio da notificação": "date",
+    "Data de notificação": "date",
+    "Data transformado em NE": "date",
     Data: "date",
     Mês: "month",
     Postes: "poles",
@@ -1645,21 +1655,28 @@ function getProjectColumnKey(column) {
 }
 
 function syncProjectsHorizontalScroll() {
-  const top = $("#projectsScrollTop");
+  const bottom = $("#projectsScrollBottom");
   const spacer = $("#projectsScrollSpacer");
   const wrap = $("#projectsTableWrap");
   const table = $("#projectsTable");
-  if (!top || !spacer || !wrap || !table) return;
+  if (!bottom || !spacer || !wrap || !table) return;
 
   spacer.style.width = `${table.scrollWidth}px`;
-  top.classList.toggle("hidden", table.scrollWidth <= wrap.clientWidth + 2);
-  top.onscroll = () => {
-    if (wrap.scrollLeft !== top.scrollLeft) wrap.scrollLeft = top.scrollLeft;
+  const rect = wrap.getBoundingClientRect();
+  const hasOverflow = table.scrollWidth > wrap.clientWidth + 2;
+  const isVisible = rect.bottom > 90 && rect.top < window.innerHeight - 34;
+  bottom.classList.toggle("active", hasOverflow && isVisible);
+  if (hasOverflow && isVisible) {
+    bottom.style.left = `${Math.max(8, rect.left)}px`;
+    bottom.style.width = `${Math.min(rect.width, window.innerWidth - Math.max(8, rect.left) - 8)}px`;
+  }
+  bottom.onscroll = () => {
+    if (wrap.scrollLeft !== bottom.scrollLeft) wrap.scrollLeft = bottom.scrollLeft;
   };
   wrap.onscroll = () => {
-    if (top.scrollLeft !== wrap.scrollLeft) top.scrollLeft = wrap.scrollLeft;
+    if (bottom.scrollLeft !== wrap.scrollLeft) bottom.scrollLeft = wrap.scrollLeft;
   };
-  top.scrollLeft = wrap.scrollLeft;
+  bottom.scrollLeft = wrap.scrollLeft;
 }
 
 function renderProjectRows(projects) {
@@ -1752,6 +1769,7 @@ function renderProjectRow(project) {
         <td>${typeBadge(project.type)}</td>
         <td>${escapeHtml(project.opinion)}</td>
         <td>${formatDate(project.mainDate)}</td>
+        <td>${formatDate(project.neDate)}</td>
         <td>${escapeHtml(project.denialReason || "-")}</td>
         <td>${formatMoney(project.multipliedValue)}</td>
         <td>${actions}</td>
@@ -1814,6 +1832,8 @@ function getFilteredProjects() {
         formatMoney(project.multipliedValue),
         getProjectYear(project),
         project.denialReason,
+        project.neDate,
+        formatDate(project.neDate),
         project.vacancyLetterDate,
         meta.countLabel,
       ].join(" ")
@@ -1900,6 +1920,7 @@ function openProjectEditor(id) {
   $("#editPoles").value = project.poles;
   $("#editMultiplied").value = formatMoney(project.multipliedValue);
   $("#editReason").value = project.denialReason || "";
+  $("#editNeDate").value = project.neDate || "";
   $("#editVacancyLetterDate").value = project.vacancyLetterDate || "";
   updateMainDateLabel("edit");
   toggleEditConditionalFields();
@@ -1915,6 +1936,7 @@ function toggleEditConditionalFields() {
   const status = $("#editStatus").value;
   $("#editVacancyLetterField").classList.toggle("hidden", !(type === "Desocupação" && status === "Concluído"));
   $("#editReasonField").classList.toggle("hidden", status !== "Negado");
+  $("#editNeDateField").classList.toggle("hidden", status !== "Negado");
 }
 
 function submitProjectEdit(event) {
@@ -1948,6 +1970,7 @@ function submitProjectEdit(event) {
     poles,
     multipliedValue: calculateMultiplied(company.pointValue, poles),
     denialReason: status === "Negado" ? $("#editReason").value : "",
+    neDate: status === "Negado" ? $("#editNeDate").value : "",
     vacancyLetterDate: type === "Desocupação" && status === "Concluído" ? $("#editVacancyLetterDate").value : "",
     updatedAt: new Date().toISOString(),
   };
@@ -2017,6 +2040,7 @@ function confirmDenyProject() {
   if (!project) return;
   project.status = "Negado";
   project.denialReason = reason;
+  project.neDate = todayInputValue();
   project.dateKind = resolveDateKind(project.type, project.status);
   project.updatedAt = new Date().toISOString();
   saveData();
@@ -2113,6 +2137,11 @@ function daysElapsed(value) {
 function formatDate(value) {
   const date = parseLocalDate(value);
   return date ? date.toLocaleDateString("pt-BR") : "-";
+}
+
+function todayInputValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
 function normalize(value) {
@@ -2294,7 +2323,8 @@ function importProjects(event) {
         getCsvValue(row, ["observação/motivo da negativa", "observacao/motivo da negativa", "motivo da negativa"]),
         DENIAL_REASONS
       );
-      const status = normalizeImportedStatus(getCsvValue(row, ["status"]), denialReason);
+      const importedNeDate = resolveImportedNeDate(row, "Negado");
+      const status = normalizeImportedStatus(getCsvValue(row, ["status"]), denialReason, importedNeDate);
       const dateKind = resolveDateKind(type, status);
       const mainDate = resolveImportedMainDate(row, type, status);
       const poles = parseCsvInteger(getCsvValue(row, ["quantidade de postes", "postes", "qtd postes"]));
@@ -2317,6 +2347,7 @@ function importProjects(event) {
         poles,
         multipliedValue: calculateMultiplied(pointValue, poles),
         denialReason,
+        neDate: status === "Negado" ? importedNeDate : "",
         vacancyLetterDate: resolveImportedVacancyLetterDate(row, type),
         createdAt: new Date(importStartedAt + index).toISOString(),
         updatedAt: new Date(importStartedAt + index).toISOString(),
@@ -2347,12 +2378,20 @@ function importProjects(event) {
 }
 
 function resolveImportedMainDate(row, type, status) {
-  if (status === "Aguardando") {
+  if (status === "Aguardando" || status === "Negado") {
     return (
       normalizeCsvDate(
         getCsvValue(row, [
           "data do envio da notificação",
           "data do envio da notificacao",
+          "data de notificação",
+          "data de notificacao",
+          "data notificação",
+          "data notificacao",
+          "data envio notificação",
+          "data envio notificacao",
+          "data envio da notificação",
+          "data envio da notificacao",
           "data do envio da carta",
           "data envio da carta",
           "data envio carta",
@@ -2381,6 +2420,23 @@ function resolveImportedMainDate(row, type, status) {
         "data do envio da carta / pedido cliente",
         "data principal",
         "data",
+      ])
+    ) || ""
+  );
+}
+
+function resolveImportedNeDate(row, status) {
+  if (status !== "Negado") return "";
+  return (
+    normalizeCsvDate(
+      getCsvValue(row, [
+        "data transformado em ne",
+        "data transformado ne",
+        "data de transformado em ne",
+        "data transformação em ne",
+        "data transformacao em ne",
+        "data ne",
+        "transformado em ne",
       ])
     ) || ""
   );
@@ -2415,13 +2471,14 @@ function normalizeImportedType(value) {
   return value;
 }
 
-function normalizeImportedStatus(value, denialReason) {
+function normalizeImportedStatus(value, denialReason, neDate = "") {
   const exact = normalizeFromList(value, STATUSES);
   if (exact) return exact;
   const clean = normalize(value);
   if (clean.includes("neg")) return "Negado";
   if (clean.includes("aguard")) return "Aguardando";
   if (clean.includes("concl")) return "Concluído";
+  if (neDate) return "Negado";
   if (denialReason) return "Negado";
   return "Concluído";
 }
@@ -2451,11 +2508,15 @@ function exportProjects() {
     "Carta",
     "Município",
     "Data de solicitação",
+    "Data de notificação",
+    "Data transformado em NE",
     "Data do envio da carta",
     "Postes",
   ];
   const rows = state.projects.map((project) => {
     const isVacancy = project.type === "Desocupação";
+    const isDenied = project.status === "Negado";
+    const isWaiting = project.status === "Aguardando";
     return {
       "Ordem de venda": project.order,
       Empresa: project.companyName,
@@ -2468,7 +2529,9 @@ function exportProjects() {
       Carta: project.letter,
       Município: project.city,
       ...(isVacancy ? { "Data de solicitação": project.mainDate } : {}),
-      "Data do envio da carta": isVacancy ? project.vacancyLetterDate : project.mainDate,
+      ...(isDenied || isWaiting ? { "Data de notificação": project.mainDate } : {}),
+      ...(isDenied ? { "Data transformado em NE": project.neDate } : {}),
+      "Data do envio da carta": isVacancy ? project.vacancyLetterDate : isDenied || isWaiting ? "" : project.mainDate,
       Postes: project.poles,
     };
   });
