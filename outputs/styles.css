@@ -454,6 +454,29 @@ main {
   height: 31px;
 }
 
+.dashboard-year-control {
+  display: grid;
+  gap: 8px;
+  min-width: 190px;
+  padding: 12px;
+  border: 1px solid rgba(33, 199, 168, 0.22);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(18, 29, 38, 0.86), rgba(10, 16, 22, 0.72));
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+}
+
+.dashboard-year-control label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dashboard-year-control select {
+  min-height: 42px;
+  border-color: rgba(33, 199, 168, 0.32);
+}
+
 h1,
 h2,
 p {
@@ -777,11 +800,12 @@ p {
 
 .monthly-chart {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(30px, 1fr));
   align-items: end;
-  gap: 14px;
+  gap: 9px;
   min-height: 175px;
   padding: 8px 4px 0;
+  overflow-x: auto;
   background-image: repeating-linear-gradient(to top, transparent 0 31px, rgba(156, 170, 184, 0.12) 32px);
 }
 
@@ -795,7 +819,7 @@ p {
 
 .month-column strong {
   color: var(--teal);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .month-column span {
@@ -808,7 +832,7 @@ p {
 
 .month-column small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   text-transform: capitalize;
 }
 

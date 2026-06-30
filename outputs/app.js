@@ -63,6 +63,7 @@ const state = {
   companies: loadArray(STORAGE_KEYS.companies),
   projects: loadArray(STORAGE_KEYS.projects),
   currentSection: "occupation",
+  dashboardYear: "",
   batchRowId: 0,
   pendingDenyId: null,
   appStarted: false,
@@ -117,6 +118,7 @@ function startApp() {
   bindCompanyForm();
   bindProjectForms();
   bindQueryControls();
+  bindDashboardControls();
   bindModals();
   bindUtilityActions();
   bindUserAdmin();
@@ -1047,6 +1049,14 @@ function bindUtilityActions() {
   });
 }
 
+function bindDashboardControls() {
+  $("#dashboardYearFilter")?.addEventListener("change", (event) => {
+    state.dashboardYear = event.target.value;
+    renderDashboard();
+    refreshIcons();
+  });
+}
+
 function bindUserAdmin() {
   $("#logoutBtn")?.addEventListener("click", logout);
   $("#refreshUsersBtn")?.addEventListener("click", renderUsersTable);
@@ -1064,6 +1074,7 @@ function renderAll() {
   renderCompaniesTable();
   renderCompanyCount();
   renderYearFilter();
+  renderDashboardYearFilter();
   renderDashboard();
   renderQueryView();
   if (authState.user?.role === "admin") renderUsersTable();
@@ -1100,18 +1111,19 @@ function renderCompanyCount() {
 }
 
 function renderDashboard() {
-  const activeProjects = state.projects.filter((project) => getProjectSection(project) === "occupation");
-  const vacancyProjects = state.projects.filter((project) => getProjectSection(project) === "vacancy");
-  const waitingProjects = state.projects.filter((project) => getProjectSection(project) === "waiting");
-  const deniedProjects = state.projects.filter((project) => getProjectSection(project) === "denied");
-  const completedProjects = state.projects.filter((project) => project.status === "Concluído");
-  const waitingAlerts = state.projects
+  const dashboardProjects = getDashboardProjects();
+  const activeProjects = dashboardProjects.filter((project) => getProjectSection(project) === "occupation");
+  const vacancyProjects = dashboardProjects.filter((project) => getProjectSection(project) === "vacancy");
+  const waitingProjects = dashboardProjects.filter((project) => getProjectSection(project) === "waiting");
+  const deniedProjects = dashboardProjects.filter((project) => getProjectSection(project) === "denied");
+  const completedProjects = dashboardProjects.filter((project) => project.status === "Concluído");
+  const waitingAlerts = dashboardProjects
     .filter((project) => project.status === "Aguardando" && daysElapsed(project.mainDate) >= 7)
     .sort((a, b) => daysElapsed(b.mainDate) - daysElapsed(a.mainDate));
-  const vacancyAlerts = state.projects
+  const vacancyAlerts = dashboardProjects
     .filter((project) => project.type === "Desocupação" && project.status === "Concluído" && !project.vacancyLetterDate && daysElapsed(project.mainDate) >= 70)
     .sort((a, b) => daysElapsed(b.mainDate) - daysElapsed(a.mainDate));
-  const latest = state.projects
+  const latest = dashboardProjects
     .slice()
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     .slice(0, 5);
@@ -1124,9 +1136,9 @@ function renderDashboard() {
   setText("#dashCompletedCount", completedProjects.length);
   setText("#dashWaitingAlertCount", waitingAlerts.length);
   setText("#dashVacancyAlertCount", vacancyAlerts.length);
-  setText("#dashTotalProjects", state.projects.length);
+  setText("#dashTotalProjects", dashboardProjects.length);
 
-  renderDashboardCharts({ activeProjects, vacancyProjects, waitingProjects, deniedProjects });
+  renderDashboardCharts({ dashboardProjects, activeProjects, vacancyProjects, waitingProjects, deniedProjects });
   renderDashboardAlertTable("#dashWaitingAlertsTable", waitingAlerts, "waiting");
   renderDashboardAlertTable("#dashVacancyAlertsTable", vacancyAlerts, "vacancy");
 
@@ -1152,7 +1164,11 @@ function renderDashboard() {
   }
 }
 
-function renderDashboardCharts({ activeProjects, vacancyProjects, waitingProjects, deniedProjects }) {
+function getDashboardProjects() {
+  return state.dashboardYear ? state.projects.filter((project) => getProjectYear(project) === state.dashboardYear) : state.projects;
+}
+
+function renderDashboardCharts({ dashboardProjects, activeProjects, vacancyProjects, waitingProjects, deniedProjects }) {
   const statusSegments = [
     {
       label: "Ocupação de postes novos",
@@ -1170,16 +1186,15 @@ function renderDashboardCharts({ activeProjects, vacancyProjects, waitingProject
     { label: "Aguardando", value: waitingProjects.length, tone: "amber", color: "#F59E0B" },
     { label: "Negado", value: deniedProjects.length, tone: "red", color: "#EF4444" },
   ];
-  renderStatusDonut(statusSegments);
-  renderTypeBars();
-  renderMonthlyChart();
+  renderStatusDonut(statusSegments, dashboardProjects.length);
+  renderTypeBars(dashboardProjects);
+  renderMonthlyChart(dashboardProjects);
 }
 
-function renderStatusDonut(segments) {
+function renderStatusDonut(segments, total) {
   const donut = $("#dashStatusDonut");
   const legend = $("#dashStatusLegend");
   if (!donut || !legend) return;
-  const total = state.projects.length;
   let start = 0;
   const gradient = total
     ? segments
@@ -1206,11 +1221,11 @@ function renderStatusDonut(segments) {
     .join("");
 }
 
-function renderTypeBars() {
+function renderTypeBars(projectsSource) {
   const container = $("#dashTypeBars");
   if (!container) return;
   const rows = TYPES.map((type) => {
-    const projects = state.projects.filter((project) => project.type === type);
+    const projects = projectsSource.filter((project) => project.type === type);
     const total = Math.max(projects.length, 1);
     const segments = [
       { tone: "green", value: projects.filter((project) => getProjectSection(project) === "occupation").length },
@@ -1233,13 +1248,17 @@ function renderTypeBars() {
   container.innerHTML = rows.join("");
 }
 
-function renderMonthlyChart() {
+function renderMonthlyChart(projectsSource) {
   const container = $("#dashMonthlyChart");
   if (!container) return;
-  const months = getLastSixMonths();
+  const months = getDashboardMonths();
   const counts = months.map((month) => ({
     ...month,
-    count: state.projects.filter((project) => project.mainDate?.slice(0, 7) === month.key).length,
+    count: projectsSource.filter((project) => {
+      if (!project.mainDate) return false;
+      if (month.key) return project.mainDate.slice(0, 7) === month.key;
+      return Number(project.mainDate.slice(5, 7)) === month.month;
+    }).length,
   }));
   const max = Math.max(...counts.map((item) => item.count), 1);
   container.innerHTML = counts
@@ -1253,6 +1272,19 @@ function renderMonthlyChart() {
       `
     )
     .join("");
+}
+
+function getDashboardMonths() {
+  const formatter = new Intl.DateTimeFormat("pt-BR", { month: "short" });
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const date = new Date(Number(state.dashboardYear || new Date().getFullYear()), index, 1);
+    return {
+      key: state.dashboardYear ? `${state.dashboardYear}-${String(month).padStart(2, "0")}` : "",
+      month,
+      label: formatter.format(date).replace(".", ""),
+    };
+  });
 }
 
 function renderDashboardAlertTable(selector, projects, kind) {
@@ -1550,6 +1582,16 @@ function renderYearFilter() {
   const years = Array.from(new Set(state.projects.map(getProjectYear).filter(Boolean))).sort();
   select.innerHTML = `<option value="">Todos</option>${years.map((year) => `<option value="${year}">${year}</option>`).join("")}`;
   if (years.includes(current)) select.value = current;
+}
+
+function renderDashboardYearFilter() {
+  const select = $("#dashboardYearFilter");
+  if (!select) return;
+  const years = Array.from(new Set(["2025", "2026", ...state.projects.map(getProjectYear).filter(Boolean)])).sort();
+  const current = state.dashboardYear;
+  select.innerHTML = `<option value="">Todos</option>${years.map((year) => `<option value="${year}">${year}</option>`).join("")}`;
+  if (years.includes(current)) select.value = current;
+  else state.dashboardYear = "";
 }
 
 function renderProjectTable() {
