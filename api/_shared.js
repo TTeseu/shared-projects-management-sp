@@ -3,6 +3,7 @@ const { neon } = require("@neondatabase/serverless");
 
 let sql;
 let schemaReady = false;
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 function getSql() {
   if (!process.env.DATABASE_URL) {
@@ -73,7 +74,7 @@ function createSessionCookie(user) {
       name: user.name,
       role: user.role,
       status: user.status,
-      exp: Date.now() + 1000 * 60 * 60 * 12,
+      exp: Date.now() + SESSION_MAX_AGE_SECONDS * 1000,
     })
   );
   const token = `${payload}.${sign(payload)}`;
@@ -82,7 +83,7 @@ function createSessionCookie(user) {
     secure: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 12,
+    maxAge: SESSION_MAX_AGE_SECONDS,
   });
 }
 

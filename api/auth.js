@@ -193,6 +193,9 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "GET" && action === "session") {
       const user = await getUserFromSession(req);
+      if (user?.status === "approved") {
+        res.setHeader("Set-Cookie", createSessionCookie(user));
+      }
       res.status(200).json({ user: publicUser(user), approved: user?.status === "approved" });
       return;
     }
