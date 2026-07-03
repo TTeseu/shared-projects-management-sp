@@ -476,6 +476,13 @@
                     <label for="singleStatus">Status</label>
                     <select id="singleStatus" name="status" required></select>
                   </div>
+                  <div class="field span-3 hidden" id="singlePoleExchangeField">
+                    <label for="singlePoleExchange">Troca de postes?</label>
+                    <select id="singlePoleExchange" name="poleExchange">
+                      <option value="Não">Não</option>
+                      <option value="Sim">Sim</option>
+                    </select>
+                  </div>
                   <div class="field span-3 required">
                     <label for="singleMainDate" id="singleMainDateLabel">Data do envio da carta</label>
                     <input id="singleMainDate" name="mainDate" type="date" required />
@@ -578,6 +585,13 @@
                   <div class="field span-3 required">
                     <label for="batchStatus">Status</label>
                     <select id="batchStatus" required></select>
+                  </div>
+                  <div class="field span-3 hidden" id="batchPoleExchangeField">
+                    <label for="batchPoleExchange">Troca de postes?</label>
+                    <select id="batchPoleExchange">
+                      <option value="Não">Não</option>
+                      <option value="Sim">Sim</option>
+                    </select>
                   </div>
                   <div class="field span-3 required">
                     <label for="batchMainDate" id="batchMainDateLabel">Data do envio da carta</label>
@@ -905,6 +919,13 @@
           <div class="field span-3 required"><label for="editType">Tipo</label><select id="editType" required></select></div>
           <div class="field span-3 required"><label for="editOpinion">Parecer</label><select id="editOpinion" required></select></div>
           <div class="field span-3 required"><label for="editStatus">Status</label><select id="editStatus" required></select></div>
+          <div class="field span-3" id="editPoleExchangeField">
+            <label for="editPoleExchange">Troca de postes?</label>
+            <select id="editPoleExchange">
+              <option value="Não">Não</option>
+              <option value="Sim">Sim</option>
+            </select>
+          </div>
           <div class="field span-3 required"><label for="editMainDate" id="editMainDateLabel">Data do envio da carta</label><input id="editMainDate" type="date" required /></div>
           <div class="field span-3 required"><label for="editMonth">Mês de referência</label><select id="editMonth" required></select></div>
           <div class="field span-3 required"><label for="editPoles">Quantidade de postes</label><input id="editPoles" type="number" min="1" step="1" required /></div>

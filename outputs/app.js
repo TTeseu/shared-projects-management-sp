@@ -532,12 +532,14 @@ function bindProjectForms() {
     $(selector).addEventListener("change", () => {
       updateMainDateLabel("single");
       toggleReasonField("single");
+      togglePoleExchangeField("single");
     })
   );
   ["#batchType", "#batchStatus"].forEach((selector) =>
     $(selector).addEventListener("change", () => {
       updateMainDateLabel("batch");
       toggleReasonField("batch");
+      togglePoleExchangeField("batch");
     })
   );
   ["#editType", "#editStatus"].forEach((selector) =>
@@ -565,6 +567,7 @@ function bindProjectForms() {
     setTimeout(() => {
       updateMainDateLabel("single");
       toggleReasonField("single");
+      togglePoleExchangeField("single");
       updateCalculatedValue("single");
       setDefaultCadastroOpinions();
     }, 0);
@@ -747,6 +750,15 @@ function toggleReasonField(prefix) {
   if (field) field.classList.toggle("hidden", status !== "Negado");
 }
 
+function togglePoleExchangeField(prefix) {
+  const status = $(`#${prefix}Status`)?.value;
+  const field = $(`#${prefix}PoleExchangeField`);
+  const select = $(`#${prefix}PoleExchange`);
+  const visible = status === "Aguardando";
+  if (field) field.classList.toggle("hidden", !visible);
+  if (select && !visible) select.value = "Não";
+}
+
 function resolveDateKind(type, status) {
   if (status === "Aguardando" || status === "Negado") return "notification";
   if (type === "Desocupação") return "request";
@@ -806,6 +818,7 @@ function collectProjectFromPrefix(prefix) {
     month: $(`#${prefix}Month`).value,
     poles,
     multipliedValue: calculateMultiplied(company?.pointValue || parseMoney($(`#${prefix}PointValue`).value), poles),
+    poleExchange: status === "Aguardando" && $(`#${prefix}PoleExchange`)?.value === "Sim",
     denialReason: status === "Negado" ? $(`#${prefix}Reason`).value : "",
     neDate: status === "Negado" ? todayInputValue() : "",
     vacancyLetterDate: "",
@@ -827,6 +840,7 @@ function submitBatchProjects(event) {
     month: $("#batchMonth").value,
     sameCity: $("#sameCityToggle").checked,
     sharedCity: $("#batchSharedCity").value,
+    poleExchange: $("#batchStatus").value === "Aguardando" && $("#batchPoleExchange")?.value === "Sim",
     denialReason: $("#batchStatus").value === "Negado" ? $("#batchReason").value : "",
     neDate: $("#batchStatus").value === "Negado" ? todayInputValue() : "",
   };
@@ -866,6 +880,7 @@ function submitBatchProjects(event) {
     month: shared.month,
     poles: row.poles,
     multipliedValue: calculateMultiplied(company.pointValue, row.poles),
+    poleExchange: shared.poleExchange,
     denialReason: shared.status === "Negado" ? shared.denialReason : "",
     neDate: shared.status === "Negado" ? shared.neDate : "",
     vacancyLetterDate: "",
@@ -889,6 +904,7 @@ function submitBatchProjects(event) {
     updateBatchCityMode();
     updateMainDateLabel("batch");
     toggleReasonField("batch");
+    togglePoleExchangeField("batch");
     setDefaultCadastroOpinions();
     renderAll();
     activateTab("project-query");
@@ -917,6 +933,9 @@ function addBatchRow(data = {}) {
   $(".batch-city", tr).value = data.city || "";
   $(".batch-order", tr).addEventListener("input", (event) => sanitizeDigitsInput(event.target));
   $(".batch-poles", tr).addEventListener("input", updateBatchCalculatedValues);
+  $$(".batch-order, .batch-letter, .batch-poles", tr).forEach((input) => {
+    input.addEventListener("paste", handleBatchPaste);
+  });
   $(".remove-batch-row", tr).addEventListener("click", () => {
     tr.remove();
     updateBatchCalculatedValues();
@@ -924,6 +943,60 @@ function addBatchRow(data = {}) {
   updateBatchCityMode();
   updateBatchCalculatedValues();
   refreshIcons();
+}
+
+function handleBatchPaste(event) {
+  const text = event.clipboardData?.getData("text") || "";
+  if (!text.includes("\t") && !/[\r\n]/.test(text)) return;
+  event.preventDefault();
+
+  const rows = text
+    .replace(/\r/g, "")
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line) => line.split("\t"));
+  if (!rows.length) return;
+
+  const startTr = event.target.closest("tr");
+  const existingRows = () => $$("#batchRowsBody tr");
+  let startRowIndex = existingRows().indexOf(startTr);
+  if (startRowIndex < 0) startRowIndex = 0;
+
+  const sameCity = $("#sameCityToggle").checked;
+  const columns = sameCity ? ["order", "letter", "poles"] : ["order", "letter", "poles", "city"];
+  const classToColumn = {
+    "batch-order": "order",
+    "batch-letter": "letter",
+    "batch-poles": "poles",
+  };
+  const startColumnName = Object.entries(classToColumn).find(([className]) => event.target.classList.contains(className))?.[1] || "order";
+  const startColumnIndex = columns.indexOf(startColumnName);
+
+  rows.forEach((cells, rowOffset) => {
+    while (existingRows().length <= startRowIndex + rowOffset) addBatchRow();
+    const tr = existingRows()[startRowIndex + rowOffset];
+    const targetColumns = cells.length === 1 ? [startColumnName] : columns.slice(Math.max(startColumnIndex, 0));
+    cells.forEach((cell, cellIndex) => {
+      const column = targetColumns[cellIndex];
+      if (!column) return;
+      setBatchCellValue(tr, column, cell);
+    });
+  });
+  updateBatchCalculatedValues();
+  refreshIcons();
+}
+
+function setBatchCellValue(tr, column, rawValue) {
+  const value = String(rawValue || "").trim();
+  if (column === "order") {
+    $(".batch-order", tr).value = value.replace(/\D/g, "");
+  } else if (column === "letter") {
+    $(".batch-letter", tr).value = value;
+  } else if (column === "poles") {
+    $(".batch-poles", tr).value = value.replace(/\D/g, "");
+  } else if (column === "city") {
+    $(".batch-city", tr).value = normalizeFromList(value, MUNICIPALITIES);
+  }
 }
 
 function collectBatchRows() {
@@ -1118,7 +1191,7 @@ function renderDashboard() {
   const deniedProjects = dashboardProjects.filter((project) => getProjectSection(project) === "denied");
   const completedProjects = dashboardProjects.filter((project) => project.status === "Concluído");
   const waitingAlerts = dashboardProjects
-    .filter((project) => project.status === "Aguardando" && daysElapsed(project.mainDate) >= 7)
+    .filter((project) => project.status === "Aguardando" && !project.poleExchange && daysElapsed(project.mainDate) >= 7)
     .sort((a, b) => daysElapsed(b.mainDate) - daysElapsed(a.mainDate));
   const vacancyAlerts = dashboardProjects
     .filter((project) => project.type === "Desocupação" && project.status === "Concluído" && !project.vacancyLetterDate && daysElapsed(project.mainDate) >= 70)
@@ -1255,9 +1328,10 @@ function renderMonthlyChart(projectsSource) {
   const counts = months.map((month) => ({
     ...month,
     count: projectsSource.filter((project) => {
-      if (!project.mainDate) return false;
-      if (month.key) return project.mainDate.slice(0, 7) === month.key;
-      return Number(project.mainDate.slice(5, 7)) === month.month;
+      const periodDate = getProjectPeriodDate(project);
+      if (!periodDate) return false;
+      if (month.key) return periodDate.slice(0, 7) === month.key;
+      return Number(periodDate.slice(5, 7)) === month.month;
     }).length,
   }));
   const max = Math.max(...counts.map((item) => item.count), 1);
@@ -1514,7 +1588,7 @@ function renderSummaryCards() {
     waiting: state.projects.filter((project) => getProjectSection(project) === "waiting").length,
     denied: state.projects.filter((project) => getProjectSection(project) === "denied").length,
     completed: state.projects.filter((project) => project.status === "Concluído").length,
-    month: state.projects.filter((project) => project.mainDate?.slice(0, 7) === `${currentYear}-${currentMonth}`).length,
+    month: state.projects.filter((project) => getProjectPeriodDate(project)?.slice(0, 7) === `${currentYear}-${currentMonth}`).length,
   };
   const totals = {
     all: filteredProjects.length,
@@ -1599,13 +1673,16 @@ function renderProjectTable() {
   $("#querySectionTitle").textContent = copy.title;
   $("#querySectionSubtitle").textContent = copy.subtitle;
   const projects = getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection);
-  renderProjectHead();
-  renderProjectRows(projects);
+  const tableOptions = {
+    showPoleExchange: state.currentSection === "waiting" && projects.some((project) => project.poleExchange),
+  };
+  renderProjectHead(tableOptions);
+  renderProjectRows(projects, tableOptions);
   syncProjectsHorizontalScroll();
   refreshIcons();
 }
 
-function renderProjectHead() {
+function renderProjectHead(options = {}) {
   const columns = {
     occupation: [
       "Empresa",
@@ -1641,6 +1718,7 @@ function renderProjectHead() {
       "Município",
       "Tipo",
       "Data do envio da notificação",
+      ...(options.showPoleExchange ? ["Troca de postes"] : []),
       "Contagem 10 dias",
       "Alerta",
       "Valor multiplicado",
@@ -1689,6 +1767,7 @@ function getProjectColumnKey(column) {
     "Contagem 10 dias": "count",
     "Alerta/Status": "alert",
     Alerta: "alert",
+    "Troca de postes": "status",
     "Motivo da negativa": "reason",
     Ações: "actions",
   };
@@ -1720,14 +1799,14 @@ function syncProjectsHorizontalScroll() {
   bottom.scrollLeft = wrap.scrollLeft;
 }
 
-function renderProjectRows(projects) {
+function renderProjectRows(projects, options = {}) {
   const body = $("#projectsTableBody");
   if (!projects.length) {
     body.innerHTML = `<tr><td colspan="13"><div class="empty-state">Nenhum projeto encontrado para esta janela.</div></td></tr>`;
     return;
   }
 
-  body.innerHTML = projects.map((project) => renderProjectRow(project)).join("");
+  body.innerHTML = projects.map((project) => renderProjectRow(project, options)).join("");
 
   $$("[data-edit-project]").forEach((button) =>
     button.addEventListener("click", () => openProjectEditor(button.dataset.editProject))
@@ -1749,7 +1828,7 @@ function renderProjectRows(projects) {
   });
 }
 
-function renderProjectRow(project) {
+function renderProjectRow(project, options = {}) {
   const meta = getProjectMeta(project);
   const rowClass = meta.hasAlert ? "alert-row" : "";
   const actions = `
@@ -1785,6 +1864,7 @@ function renderProjectRow(project) {
         <td>${escapeHtml(project.city)}</td>
         <td>${typeBadge(project.type)}</td>
         <td>${formatDate(project.mainDate)}</td>
+        ${options.showPoleExchange ? `<td>${project.poleExchange ? badge("Sim", "blue") : "-"}</td>` : ""}
         <td>${escapeHtml(meta.countLabel)}</td>
         <td>${meta.statusBadge}</td>
         <td>${formatMoney(project.multipliedValue)}</td>
@@ -1868,7 +1948,9 @@ function getFilteredProjects() {
         getDateLabel(project.dateKind),
         project.mainDate,
         formatDate(project.mainDate),
-        project.month,
+        getProjectPeriodDate(project),
+        formatDate(getProjectPeriodDate(project)),
+        getProjectMonth(project),
         project.poles,
         formatMoney(project.multipliedValue),
         getProjectYear(project),
@@ -1887,7 +1969,7 @@ function getFilteredProjects() {
     if (filters.type && project.type !== filters.type) return false;
     if (filters.opinion && project.opinion !== filters.opinion) return false;
     if (filters.status && project.status !== filters.status) return false;
-    if (filters.month && project.month !== filters.month) return false;
+    if (filters.month && getProjectMonth(project) !== filters.month) return false;
     if (filters.year && getProjectYear(project) !== filters.year) return false;
     if (filters.reason && project.denialReason !== filters.reason) return false;
     if (filters.finalized && !meta.isFinalized) return false;
@@ -1905,6 +1987,14 @@ function getProjectSection(project) {
 
 function getProjectMeta(project) {
   if (project.status === "Aguardando") {
+    if (project.poleExchange) {
+      return {
+        countLabel: "Sem contagem",
+        hasAlert: false,
+        isFinalized: false,
+        statusBadge: badge("Troca de postes", "blue"),
+      };
+    }
     const elapsed = daysElapsed(project.mainDate);
     const hit = elapsed >= 10;
     return {
@@ -1940,7 +2030,24 @@ function getProjectMeta(project) {
 }
 
 function getProjectYear(project) {
-  return project.mainDate ? project.mainDate.slice(0, 4) : "";
+  const date = getProjectPeriodDate(project);
+  return date ? date.slice(0, 4) : "";
+}
+
+function getProjectMonth(project) {
+  if (project.type === "Desocupação" && project.status === "Concluído") {
+    const date = getProjectPeriodDate(project);
+    if (!date) return "";
+    return MONTHS[Number(date.slice(5, 7)) - 1] || "";
+  }
+  return project.month || "";
+}
+
+function getProjectPeriodDate(project) {
+  if (project.type === "Desocupação" && project.status === "Concluído") {
+    return project.vacancyLetterDate || "";
+  }
+  return project.mainDate || "";
 }
 
 function openProjectEditor(id) {
@@ -1960,6 +2067,7 @@ function openProjectEditor(id) {
   $("#editMonth").value = project.month;
   $("#editPoles").value = project.poles;
   $("#editMultiplied").value = formatMoney(project.multipliedValue);
+  $("#editPoleExchange").value = project.poleExchange ? "Sim" : "Não";
   $("#editReason").value = project.denialReason || "";
   $("#editNeDate").value = project.neDate || "";
   $("#editVacancyLetterDate").value = project.vacancyLetterDate || "";
@@ -1978,6 +2086,8 @@ function toggleEditConditionalFields() {
   $("#editVacancyLetterField").classList.toggle("hidden", !(type === "Desocupação" && status === "Concluído"));
   $("#editReasonField").classList.toggle("hidden", status !== "Negado");
   $("#editNeDateField").classList.toggle("hidden", status !== "Negado");
+  $("#editPoleExchangeField").classList.toggle("hidden", status !== "Aguardando");
+  if (status !== "Aguardando") $("#editPoleExchange").value = "Não";
 }
 
 function submitProjectEdit(event) {
@@ -2010,6 +2120,7 @@ function submitProjectEdit(event) {
     month: $("#editMonth").value,
     poles,
     multipliedValue: calculateMultiplied(company.pointValue, poles),
+    poleExchange: status === "Aguardando" && $("#editPoleExchange").value === "Sim",
     denialReason: status === "Negado" ? $("#editReason").value : "",
     neDate: status === "Negado" ? $("#editNeDate").value : "",
     vacancyLetterDate: type === "Desocupação" && status === "Concluído" ? $("#editVacancyLetterDate").value : "",
@@ -2080,6 +2191,7 @@ function confirmDenyProject() {
   const project = state.projects.find((item) => item.id === state.pendingDenyId);
   if (!project) return;
   project.status = "Negado";
+  project.poleExchange = false;
   project.denialReason = reason;
   project.neDate = todayInputValue();
   project.dateKind = resolveDateKind(project.type, project.status);
@@ -2387,6 +2499,7 @@ function importProjects(event) {
         month: normalizeFromList(getCsvValue(row, ["mês de referência", "mes de referencia", "mês", "mes"]), MONTHS),
         poles,
         multipliedValue: calculateMultiplied(pointValue, poles),
+        poleExchange: status === "Aguardando" && normalizeYes(getCsvValue(row, ["troca de postes", "troca postes", "troca de poste", "troca poste"])),
         denialReason,
         neDate: status === "Negado" ? importedNeDate : "",
         vacancyLetterDate: resolveImportedVacancyLetterDate(row, type),
@@ -2524,6 +2637,11 @@ function normalizeImportedStatus(value, denialReason, neDate = "") {
   return "Concluído";
 }
 
+function normalizeYes(value) {
+  const clean = normalize(value);
+  return ["sim", "s", "yes", "y", "true", "1"].includes(clean);
+}
+
 function normalizeFromList(value, list) {
   const clean = normalize(value);
   if (!clean) return "";
@@ -2537,24 +2655,71 @@ function parseCsvInteger(value) {
 }
 
 function exportProjects() {
-  const headers = [
-    "Ordem de venda",
-    "Empresa",
-    "Tipo",
-    "Mês de referência",
-    "Parecer",
-    "Parceiro",
-    "Valor",
-    "Multiplicação ponto",
-    "Carta",
-    "Município",
-    "Data de solicitação",
-    "Data de notificação",
-    "Data transformado em NE",
-    "Data do envio da carta",
-    "Postes",
-  ];
-  const rows = state.projects.map((project) => {
+  const projects = getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection);
+  const headersBySection = {
+    occupation: [
+      "Ordem de venda",
+      "Empresa",
+      "Tipo",
+      "Mês de referência",
+      "Parecer",
+      "Parceiro",
+      "Valor",
+      "Multiplicação ponto",
+      "Carta",
+      "Município",
+      "Data do envio da carta",
+      "Postes",
+    ],
+    vacancy: [
+      "Ordem de venda",
+      "Empresa",
+      "Tipo",
+      "Mês de referência",
+      "Parecer",
+      "Parceiro",
+      "Valor",
+      "Multiplicação ponto",
+      "Carta",
+      "Município",
+      "Data de solicitação",
+      "Data do envio da carta",
+      "Postes",
+    ],
+    waiting: [
+      "Ordem de venda",
+      "Empresa",
+      "Tipo",
+      "Mês de referência",
+      "Parecer",
+      "Parceiro",
+      "Valor",
+      "Multiplicação ponto",
+      "Carta",
+      "Município",
+      "Data de notificação",
+      "Troca de postes",
+      "Postes",
+    ],
+    denied: [
+      "Ordem de venda",
+      "Empresa",
+      "Tipo",
+      "Mês de referência",
+      "Parecer",
+      "Parceiro",
+      "Valor",
+      "Multiplicação ponto",
+      "Carta",
+      "Município",
+      "Data de notificação",
+      "Data transformado em NE",
+      "Motivo da negativa",
+      "Postes",
+    ],
+  };
+  const headers = headersBySection[state.currentSection] || headersBySection.occupation;
+  const rows = projects.map((project) => {
     const isVacancy = project.type === "Desocupação";
     const isDenied = project.status === "Negado";
     const isWaiting = project.status === "Aguardando";
@@ -2562,7 +2727,7 @@ function exportProjects() {
       "Ordem de venda": project.order,
       Empresa: project.companyName,
       Tipo: project.type,
-      "Mês de referência": project.month,
+      "Mês de referência": getProjectMonth(project),
       Parecer: project.opinion,
       Parceiro: project.partner,
       Valor: formatNumberForInput(project.pointValue),
@@ -2572,6 +2737,8 @@ function exportProjects() {
       ...(isVacancy ? { "Data de solicitação": project.mainDate } : {}),
       ...(isDenied || isWaiting ? { "Data de notificação": project.mainDate } : {}),
       ...(isDenied ? { "Data transformado em NE": project.neDate } : {}),
+      ...(isDenied ? { "Motivo da negativa": project.denialReason || "" } : {}),
+      ...(isWaiting ? { "Troca de postes": project.poleExchange ? "Sim" : "Não" } : {}),
       "Data do envio da carta": isVacancy ? project.vacancyLetterDate : isDenied || isWaiting ? "" : project.mainDate,
       Postes: project.poles,
     };
