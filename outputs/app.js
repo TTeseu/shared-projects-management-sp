@@ -1820,7 +1820,10 @@ function renderProjectTable() {
   const copy = sectionCopy[state.currentSection];
   $("#querySectionTitle").textContent = copy.title;
   $("#querySectionSubtitle").textContent = copy.subtitle;
-  const projects = getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection);
+  const projects = sortProjectsByLetterDate(
+    getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection),
+    "desc"
+  );
   const tableOptions = {
     showPoleExchange: state.currentSection === "waiting" && projects.some((project) => project.poleExchange),
   };
@@ -1982,7 +1985,7 @@ function renderProjectRow(project, options = {}) {
   const actions = `
     <div class="table-actions">
       <button class="secondary icon-text" type="button" data-edit-project="${project.id}"><i data-lucide="pencil"></i>Editar</button>
-      <button class="ghost icon-only" type="button" data-delete-project="${project.id}" aria-label="Excluir projeto"><i data-lucide="trash-2"></i></button>
+      <button class="danger icon-text" type="button" data-delete-project="${project.id}"><i data-lucide="trash-2"></i>Excluir</button>
     </div>
   `;
 
@@ -2020,7 +2023,7 @@ function renderProjectRow(project, options = {}) {
           <div class="table-actions">
             <button class="danger icon-text" type="button" data-deny-project="${project.id}"><i data-lucide="ban"></i>Negar</button>
             <button class="secondary icon-text" type="button" data-edit-project="${project.id}"><i data-lucide="pencil"></i>Editar</button>
-            <button class="ghost icon-only" type="button" data-delete-project="${project.id}" aria-label="Excluir projeto"><i data-lucide="trash-2"></i></button>
+            <button class="danger icon-text" type="button" data-delete-project="${project.id}"><i data-lucide="trash-2"></i>Excluir</button>
           </div>
         </td>
       </tr>
@@ -2196,6 +2199,29 @@ function getProjectPeriodDate(project) {
     return project.vacancyLetterDate || "";
   }
   return project.mainDate || "";
+}
+
+function getProjectLetterSortDate(project) {
+  if (project.type === "Desocupação" && project.status === "Concluído") {
+    return project.vacancyLetterDate || project.mainDate || "";
+  }
+  return project.mainDate || "";
+}
+
+function sortProjectsByLetterDate(projects, direction = "desc") {
+  return projects.slice().sort((a, b) => {
+    const aTime = getDateSortTime(getProjectLetterSortDate(a), direction);
+    const bTime = getDateSortTime(getProjectLetterSortDate(b), direction);
+    if (aTime !== bTime) return direction === "asc" ? aTime - bTime : bTime - aTime;
+    return String(a.companyName || "").localeCompare(String(b.companyName || ""), "pt-BR");
+  });
+}
+
+function getDateSortTime(value, direction) {
+  if (!value) return direction === "asc" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+  const time = Date.parse(`${value}T00:00:00`);
+  if (Number.isNaN(time)) return direction === "asc" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+  return time;
 }
 
 function openProjectEditor(id) {
@@ -2804,7 +2830,10 @@ function parseCsvInteger(value) {
 }
 
 function exportProjects() {
-  const projects = getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection);
+  const projects = sortProjectsByLetterDate(
+    getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection),
+    "asc"
+  );
   const headersBySection = {
     occupation: [
       "Ordem de venda",
