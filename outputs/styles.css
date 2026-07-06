@@ -588,28 +588,48 @@ p {
   margin: 0 0 14px;
 }
 
-.checklist-textarea {
+.checklist-rich-editor {
   width: 100%;
   min-height: 300px;
-  resize: vertical;
+  max-height: 520px;
+  overflow: auto;
   border: 1px solid rgba(52, 69, 84, 0.92);
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(16, 26, 35, 0.96), rgba(10, 16, 22, 0.98));
   color: var(--text);
-  padding: 14px;
+  padding: 18px;
   outline: none;
-  line-height: 1.55;
+  line-height: 1.45;
   transition: 150ms ease;
 }
 
-.checklist-textarea:focus {
+.checklist-rich-editor:focus {
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(33, 199, 168, 0.1);
 }
 
-.checklist-textarea.readonly {
+.checklist-rich-editor.readonly {
   color: #c8d2dc;
   background: rgba(14, 23, 31, 0.72);
+}
+
+.checklist-rich-editor p {
+  margin: 0 0 14px;
+}
+
+.checklist-rich-editor ul,
+.checklist-rich-editor ol {
+  margin: 0 0 14px 24px;
+  padding-left: 18px;
+}
+
+.checklist-rich-editor li {
+  margin: 0 0 10px;
+}
+
+.checklist-rich-editor a {
+  color: #c09cff;
+  text-decoration: underline;
 }
 
 .admin-edit-note {

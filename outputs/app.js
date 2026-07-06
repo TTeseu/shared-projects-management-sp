@@ -53,9 +53,9 @@ const DENIAL_REASONS = [
 
 const DEFAULT_CHECKLISTS = {
   occupation:
-    "Prezados,\n\nSegue checklist para projeto de ocupação de postes novos/regularização:\n\n- Empresa:\n- Ordem de venda:\n- Carta:\n- Município:\n- Mês de referência:\n- Quantidade de postes:\n- Parecer:\n\nPor gentileza, conferir as informações e retornar com a documentação necessária.\n\nAtenciosamente,",
+    '<p><strong>Bom dia, prezados(a).</strong></p><p><strong>Espero que estejam bem.</strong></p><p><strong>Segue abaixo todas as informações para solicitar a análise de projeto.</strong></p><p><strong>Checklist de Ocupação</strong></p><p><strong>Entrada de Projetos:</strong></p><p><strong>Os projetos deverão ser encaminhados para o e-mail: <a href="mailto:infrarede.eletrica@edpbr.com.br">infrarede.eletrica@edpbr.com.br</a></strong></p><p><strong>Para que não haja problemas no envio dos projetos, pedimos, por gentileza, que seja encaminhado apenas um projeto por e-mail, podendo o mesmo estar compactado.</strong></p><p><strong>Pedimos também que o assunto do e-mail seja padronizado conforme abaixo:</strong></p><p><strong>PROJETO DE COMPARTILHAMENTO - (NOME DA EMPRESA) | (TRATA-SE DE REGULARIZAÇÃO OU NÃO)</strong></p><p><strong>OBS: Com relação ao ANEXO 2, as informações referentes ao município e ao questionamento se o projeto é para regularização ou não deverão ser selecionadas na célula de preenchimento. Os demais campos deverão ser preenchidos, se possível, em CAIXA ALTA.</strong></p><p><strong>Caso o envio envolva múltiplos projetos, é possível consolidá-los na mesma planilha do Anexo 2, utilizando uma linha distinta para cada projeto.</strong></p><p><strong>Fluxo de Aprovação:</strong></p><p><strong>Após a aprovação dos projetos, serão encaminhadas, através de e-mail, para os endereços cadastrados, as respectivas cartas de aprovação.</strong></p><p><strong>Caso os projetos sejam reprovados, será encaminhada uma carta de reprovação informando o motivo da reprovação.</strong></p><p><strong>Checklist dos documentos necessários:</strong></p><ul><li><strong>Memorial Descritivo digitalizado, em formato DOC ou PDF;</strong></li><li><strong>Arquivo DWG do projeto;</strong></li><li><strong>Carteira do Conselho de Classe do profissional responsável técnico, digitalizada em formato PDF;</strong></li><li><strong>Registro de Pessoa Jurídica junto ao Conselho de Classe da empresa projetista/executora do projeto, digitalizado em formato PDF;</strong></li></ul>',
   vacancy:
-    "Prezados,\n\nSegue checklist para projeto de desocupação:\n\n- Empresa:\n- Ordem de venda:\n- Carta:\n- Município:\n- Data de solicitação:\n- Quantidade de postes:\n\nPor gentileza, seguir com as tratativas de retirada e informar a data do envio da carta quando concluído.\n\nAtenciosamente,",
+    '<p><strong>Bom dia, prezados(a).</strong></p><p><strong>Espero que estejam bem.</strong></p><p><strong>Segue abaixo todas as informações para projeto de desocupação.</strong></p><p><strong>Checklist de Desocupação</strong></p><p><strong>Entrada de Projetos:</strong></p><p><strong>Os projetos deverão ser encaminhados para o e-mail: <a href="mailto:infrarede.eletrica@edpbr.com.br">infrarede.eletrica@edpbr.com.br</a></strong></p><p><strong>Pedimos que o assunto do e-mail seja padronizado conforme abaixo:</strong></p><p><strong>PROJETO DE DESOCUPAÇÃO - (NOME DA EMPRESA)</strong></p><p><strong>Após o envio da solicitação, o prazo de acompanhamento será controlado conforme as regras internas do sistema.</strong></p><p><strong>Checklist dos documentos necessários:</strong></p><ul><li><strong>Ordem de venda;</strong></li><li><strong>Carta;</strong></li><li><strong>Município;</strong></li><li><strong>Data de solicitação;</strong></li><li><strong>Quantidade de postes;</strong></li></ul>',
 };
 
 const STORAGE_KEYS = {
@@ -292,9 +292,64 @@ function loadObject(key) {
 
 function normalizeChecklists(value = {}) {
   return {
-    occupation: typeof value.occupation === "string" ? value.occupation : DEFAULT_CHECKLISTS.occupation,
-    vacancy: typeof value.vacancy === "string" ? value.vacancy : DEFAULT_CHECKLISTS.vacancy,
+    occupation: normalizeChecklistHtml(value.occupation, DEFAULT_CHECKLISTS.occupation),
+    vacancy: normalizeChecklistHtml(value.vacancy, DEFAULT_CHECKLISTS.vacancy),
   };
+}
+
+function normalizeChecklistHtml(value, fallback) {
+  if (typeof value !== "string" || !value.trim()) return fallback;
+  const html = /<\/?[a-z][\s\S]*>/i.test(value) ? value : plainTextToChecklistHtml(value);
+  return sanitizeChecklistHtml(html);
+}
+
+function plainTextToChecklistHtml(value) {
+  return String(value)
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => (line.trim() ? `<p>${linkifyEscapedText(escapeHtml(line))}</p>` : "<p><br></p>"))
+    .join("");
+}
+
+function linkifyEscapedText(value) {
+  return value
+    .replace(
+      /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+      (email) => `<a href="mailto:${email}">${email}</a>`
+    )
+    .replace(
+      /\bhttps?:\/\/[^\s<]+/gi,
+      (url) => `<a href="${url}">${url}</a>`
+    );
+}
+
+function sanitizeChecklistHtml(value) {
+  const template = document.createElement("template");
+  template.innerHTML = String(value || "");
+  const blockedTags = new Set(["script", "style", "iframe", "object", "embed", "meta", "link"]);
+  template.content.querySelectorAll("*").forEach((element) => {
+    const tag = element.tagName.toLowerCase();
+    if (blockedTags.has(tag)) {
+      element.remove();
+      return;
+    }
+    Array.from(element.attributes).forEach((attribute) => {
+      const name = attribute.name.toLowerCase();
+      const rawValue = attribute.value || "";
+      if (name.startsWith("on")) {
+        element.removeAttribute(attribute.name);
+        return;
+      }
+      if ((name === "href" || name === "src") && /^\s*javascript:/i.test(rawValue)) {
+        element.removeAttribute(attribute.name);
+      }
+    });
+    if (tag === "a" && element.getAttribute("href")) {
+      element.setAttribute("target", "_blank");
+      element.setAttribute("rel", "noopener noreferrer");
+    }
+  });
+  return template.innerHTML;
 }
 
 function saveData() {
@@ -1200,15 +1255,19 @@ function renderChecklist() {
   const isAdmin = authState.user?.role === "admin";
   const occupation = $("#checklistOccupationText");
   const vacancy = $("#checklistVacancyText");
-  if (occupation && document.activeElement !== occupation) occupation.value = state.checklists.occupation;
-  if (vacancy && document.activeElement !== vacancy) vacancy.value = state.checklists.vacancy;
-  [occupation, vacancy].forEach((textarea) => {
-    if (!textarea) return;
-    textarea.readOnly = !isAdmin;
-    textarea.classList.toggle("readonly", !isAdmin);
+  if (occupation && document.activeElement !== occupation && occupation.innerHTML !== state.checklists.occupation) {
+    occupation.innerHTML = state.checklists.occupation;
+  }
+  if (vacancy && document.activeElement !== vacancy && vacancy.innerHTML !== state.checklists.vacancy) {
+    vacancy.innerHTML = state.checklists.vacancy;
+  }
+  [occupation, vacancy].forEach((editor) => {
+    if (!editor) return;
+    editor.contentEditable = isAdmin ? "true" : "false";
+    editor.classList.toggle("readonly", !isAdmin);
   });
   $$("[data-checklist-note]").forEach((note) => {
-    note.textContent = isAdmin ? "Você pode editar e salvar estes modelos." : "Somente administradores podem editar.";
+    note.textContent = isAdmin ? "Cole aqui o modelo do e-mail com formatação e salve." : "Somente administradores podem editar.";
   });
 }
 
@@ -1218,20 +1277,31 @@ function saveChecklistTemplates() {
     return;
   }
   state.checklists = normalizeChecklists({
-    occupation: $("#checklistOccupationText")?.value || "",
-    vacancy: $("#checklistVacancyText")?.value || "",
+    occupation: $("#checklistOccupationText")?.innerHTML || "",
+    vacancy: $("#checklistVacancyText")?.innerHTML || "",
   });
   saveData();
   renderChecklist();
-  showToast("Checklist salvo com sucesso.", "success");
+  showToast("Checklist salvo com formatação.", "success");
 }
 
 async function copyChecklistText(kind) {
   const selector = kind === "vacancy" ? "#checklistVacancyText" : "#checklistOccupationText";
-  const text = $(selector)?.value || "";
+  const editor = $(selector);
+  const html = sanitizeChecklistHtml(editor?.innerHTML || "");
+  const text = editor?.innerText || "";
   try {
-    await navigator.clipboard.writeText(text);
-    showToast("Texto copiado para a área de transferência.", "success");
+    if (window.ClipboardItem && navigator.clipboard?.write) {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([text], { type: "text/plain" }),
+        }),
+      ]);
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+    showToast("Texto formatado copiado para o e-mail.", "success");
   } catch {
     showToast("Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.", "warning");
   }
