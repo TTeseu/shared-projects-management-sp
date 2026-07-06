@@ -575,7 +575,7 @@ p {
 
 .checklist-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 18px;
   margin-bottom: 18px;
 }
@@ -590,9 +590,8 @@ p {
 
 .checklist-rich-editor {
   width: 100%;
-  min-height: 300px;
-  max-height: 520px;
-  overflow: auto;
+  min-height: 620px;
+  overflow: visible;
   border: 1px solid rgba(52, 69, 84, 0.92);
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(16, 26, 35, 0.96), rgba(10, 16, 22, 0.98));
@@ -601,6 +600,10 @@ p {
   outline: none;
   line-height: 1.45;
   transition: 150ms ease;
+}
+
+.checklist-editor:first-child .checklist-rich-editor {
+  min-height: 900px;
 }
 
 .checklist-rich-editor:focus {
