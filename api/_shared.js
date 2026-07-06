@@ -23,12 +23,17 @@ async function ensureSchema() {
         id text primary key,
         companies jsonb not null default '[]'::jsonb,
         projects jsonb not null default '[]'::jsonb,
+        checklists jsonb not null default '{}'::jsonb,
         updated_at timestamptz not null default now()
       )
     `);
   await db`
-    insert into spmsp_state (id, companies, projects)
-    values ('default', '[]'::jsonb, '[]'::jsonb)
+    alter table spmsp_state
+    add column if not exists checklists jsonb not null default '{}'::jsonb
+  `;
+  await db`
+    insert into spmsp_state (id, companies, projects, checklists)
+    values ('default', '[]'::jsonb, '[]'::jsonb, '{}'::jsonb)
     on conflict (id) do nothing
   `;
   await ignoreConcurrentSchemaCreate(() => db`

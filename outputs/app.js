@@ -51,9 +51,17 @@ const DENIAL_REASONS = [
   "Não encaminhou a documentação retificada",
 ];
 
+const DEFAULT_CHECKLISTS = {
+  occupation:
+    "Prezados,\n\nSegue checklist para projeto de ocupação de postes novos/regularização:\n\n- Empresa:\n- Ordem de venda:\n- Carta:\n- Município:\n- Mês de referência:\n- Quantidade de postes:\n- Parecer:\n\nPor gentileza, conferir as informações e retornar com a documentação necessária.\n\nAtenciosamente,",
+  vacancy:
+    "Prezados,\n\nSegue checklist para projeto de desocupação:\n\n- Empresa:\n- Ordem de venda:\n- Carta:\n- Município:\n- Data de solicitação:\n- Quantidade de postes:\n\nPor gentileza, seguir com as tratativas de retirada e informar a data do envio da carta quando concluído.\n\nAtenciosamente,",
+};
+
 const STORAGE_KEYS = {
   companies: "spmsp.companies.v1",
   projects: "spmsp.projects.v1",
+  checklists: "spmsp.checklists.v1",
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -62,6 +70,7 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 const state = {
   companies: loadArray(STORAGE_KEYS.companies),
   projects: loadArray(STORAGE_KEYS.projects),
+  checklists: normalizeChecklists(loadObject(STORAGE_KEYS.checklists)),
   currentSection: "occupation",
   dashboardYear: "",
   batchRowId: 0,
@@ -119,6 +128,7 @@ function startApp() {
   bindProjectForms();
   bindQueryControls();
   bindDashboardControls();
+  bindChecklistControls();
   bindModals();
   bindUtilityActions();
   bindUserAdmin();
@@ -271,9 +281,26 @@ function loadArray(key) {
   }
 }
 
+function loadObject(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "{}");
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeChecklists(value = {}) {
+  return {
+    occupation: typeof value.occupation === "string" ? value.occupation : DEFAULT_CHECKLISTS.occupation,
+    vacancy: typeof value.vacancy === "string" ? value.vacancy : DEFAULT_CHECKLISTS.vacancy,
+  };
+}
+
 function saveData() {
   localStorage.setItem(STORAGE_KEYS.companies, JSON.stringify(state.companies));
   localStorage.setItem(STORAGE_KEYS.projects, JSON.stringify(state.projects));
+  localStorage.setItem(STORAGE_KEYS.checklists, JSON.stringify(state.checklists));
   scheduleRemoteSave();
 }
 
@@ -286,8 +313,10 @@ async function loadRemoteData() {
     if (Array.isArray(data.companies) && Array.isArray(data.projects)) {
       state.companies = data.companies;
       state.projects = data.projects;
+      state.checklists = normalizeChecklists(data.checklists);
       localStorage.setItem(STORAGE_KEYS.companies, JSON.stringify(state.companies));
       localStorage.setItem(STORAGE_KEYS.projects, JSON.stringify(state.projects));
+      localStorage.setItem(STORAGE_KEYS.checklists, JSON.stringify(state.checklists));
       renderAll();
     }
     remoteSync.ready = true;
@@ -313,7 +342,7 @@ async function saveRemoteData() {
     const response = await fetch("/api/data", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ companies: state.companies, projects: state.projects }),
+      body: JSON.stringify({ companies: state.companies, projects: state.projects, checklists: state.checklists }),
     });
     if (!response.ok) throw new Error("Falha ao salvar no banco.");
   } catch (error) {
@@ -1130,6 +1159,13 @@ function bindDashboardControls() {
   });
 }
 
+function bindChecklistControls() {
+  $("#saveChecklistBtn")?.addEventListener("click", saveChecklistTemplates);
+  $$("[data-copy-checklist]").forEach((button) => {
+    button.addEventListener("click", () => copyChecklistText(button.dataset.copyChecklist));
+  });
+}
+
 function bindUserAdmin() {
   $("#logoutBtn")?.addEventListener("click", logout);
   $("#refreshUsersBtn")?.addEventListener("click", renderUsersTable);
@@ -1150,6 +1186,7 @@ function renderAll() {
   renderDashboardYearFilter();
   renderDashboard();
   renderQueryView();
+  renderChecklist();
   if (authState.user?.role === "admin") renderUsersTable();
   refreshIcons();
 }
@@ -1157,6 +1194,47 @@ function renderAll() {
 function renderQueryView() {
   renderSummaryCards();
   renderProjectTable();
+}
+
+function renderChecklist() {
+  const isAdmin = authState.user?.role === "admin";
+  const occupation = $("#checklistOccupationText");
+  const vacancy = $("#checklistVacancyText");
+  if (occupation && document.activeElement !== occupation) occupation.value = state.checklists.occupation;
+  if (vacancy && document.activeElement !== vacancy) vacancy.value = state.checklists.vacancy;
+  [occupation, vacancy].forEach((textarea) => {
+    if (!textarea) return;
+    textarea.readOnly = !isAdmin;
+    textarea.classList.toggle("readonly", !isAdmin);
+  });
+  $$("[data-checklist-note]").forEach((note) => {
+    note.textContent = isAdmin ? "Você pode editar e salvar estes modelos." : "Somente administradores podem editar.";
+  });
+}
+
+function saveChecklistTemplates() {
+  if (authState.user?.role !== "admin") {
+    showToast("Somente administradores podem salvar o checklist.", "error");
+    return;
+  }
+  state.checklists = normalizeChecklists({
+    occupation: $("#checklistOccupationText")?.value || "",
+    vacancy: $("#checklistVacancyText")?.value || "",
+  });
+  saveData();
+  renderChecklist();
+  showToast("Checklist salvo com sucesso.", "success");
+}
+
+async function copyChecklistText(kind) {
+  const selector = kind === "vacancy" ? "#checklistVacancyText" : "#checklistOccupationText";
+  const text = $(selector)?.value || "";
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("Texto copiado para a área de transferência.", "success");
+  } catch {
+    showToast("Não foi possível copiar automaticamente. Selecione o texto e copie manualmente.", "warning");
+  }
 }
 
 function renderCompanyOptions() {
@@ -2216,6 +2294,7 @@ function updateBreadcrumb(tabId) {
     "project-register": "Cadastro de Projetos",
     "project-query": "Consulta de Projetos",
     "company-db": "Banco de Empresas",
+    checklist: "Checklist",
     "user-admin": "Usuários",
   };
   const target = $("#breadcrumbCurrent");

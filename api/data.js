@@ -6,6 +6,11 @@ function validatePayload(payload) {
     error.statusCode = 400;
     throw error;
   }
+  if (payload.checklists !== undefined && (!payload.checklists || typeof payload.checklists !== "object" || Array.isArray(payload.checklists))) {
+    const error = new Error("Payload checklists must be an object.");
+    error.statusCode = 400;
+    throw error;
+  }
 }
 
 module.exports = async function handler(req, res) {
@@ -17,15 +22,16 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "GET") {
       const rows = await getSql()`
-        select companies, projects
+        select companies, projects, checklists
         from spmsp_state
         where id = 'default'
         limit 1
       `;
-      const state = rows[0] || { companies: [], projects: [] };
+      const state = rows[0] || { companies: [], projects: [], checklists: {} };
       res.status(200).json({
         companies: Array.isArray(state.companies) ? state.companies : [],
         projects: Array.isArray(state.projects) ? state.projects : [],
+        checklists: state.checklists && typeof state.checklists === "object" && !Array.isArray(state.checklists) ? state.checklists : {},
       });
       return;
     }
@@ -34,11 +40,12 @@ module.exports = async function handler(req, res) {
       const payload = await readBody(req);
       validatePayload(payload);
       await getSql()`
-        insert into spmsp_state (id, companies, projects, updated_at)
-        values ('default', ${JSON.stringify(payload.companies)}::jsonb, ${JSON.stringify(payload.projects)}::jsonb, now())
+        insert into spmsp_state (id, companies, projects, checklists, updated_at)
+        values ('default', ${JSON.stringify(payload.companies)}::jsonb, ${JSON.stringify(payload.projects)}::jsonb, ${JSON.stringify(payload.checklists || {})}::jsonb, now())
         on conflict (id) do update set
           companies = excluded.companies,
           projects = excluded.projects,
+          checklists = excluded.checklists,
           updated_at = now()
       `;
       res.status(200).json({ ok: true });

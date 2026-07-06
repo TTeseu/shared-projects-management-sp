@@ -56,6 +56,10 @@
             <i data-lucide="building-2"></i>
             Banco de Empresas
           </button>
+          <button class="tab" data-tab="checklist" type="button">
+            <i data-lucide="clipboard-check"></i>
+            Checklist
+          </button>
           <button class="tab admin-only hidden" data-tab="user-admin" type="button">
             <i data-lucide="users"></i>
             Usuários
@@ -832,6 +836,137 @@
                   </thead>
                   <tbody id="companiesTableBody"></tbody>
                 </table>
+              </div>
+            </section>
+          </section>
+
+          <section class="tab-panel" id="checklist">
+            <div class="page-hero">
+              <div class="hero-copy">
+                <div class="hero-icon">
+                  <i data-lucide="clipboard-check"></i>
+                </div>
+                <div>
+                  <h1>Checklist</h1>
+                  <p>Modelos de e-mail e orientação para importação das planilhas de uso mútuo.</p>
+                </div>
+              </div>
+              <button class="primary icon-text admin-only hidden" id="saveChecklistBtn" type="button">
+                <i data-lucide="save"></i>
+                Salvar checklist
+              </button>
+            </div>
+
+            <div class="checklist-grid">
+              <section class="dark-section checklist-editor">
+                <div class="section-title wide-all">
+                  <span></span>
+                  <i data-lucide="mail-check"></i>
+                  <h2>Corpo de e-mail - Ocupação/Regularização</h2>
+                </div>
+                <p>Modelo usado para projetos de ocupação de postes novos e regularização.</p>
+                <textarea id="checklistOccupationText" class="checklist-textarea" rows="14"></textarea>
+                <div class="form-actions split-actions">
+                  <button class="secondary icon-text" data-copy-checklist="occupation" type="button">
+                    <i data-lucide="copy"></i>
+                    Copiar texto
+                  </button>
+                  <span class="admin-edit-note" data-checklist-note></span>
+                </div>
+              </section>
+
+              <section class="dark-section checklist-editor">
+                <div class="section-title wide-all">
+                  <span></span>
+                  <i data-lucide="mail-warning"></i>
+                  <h2>Corpo de e-mail - Desocupação</h2>
+                </div>
+                <p>Modelo usado para comunicação de projetos de desocupação.</p>
+                <textarea id="checklistVacancyText" class="checklist-textarea" rows="14"></textarea>
+                <div class="form-actions split-actions">
+                  <button class="secondary icon-text" data-copy-checklist="vacancy" type="button">
+                    <i data-lucide="copy"></i>
+                    Copiar texto
+                  </button>
+                  <span class="admin-edit-note" data-checklist-note></span>
+                </div>
+              </section>
+            </div>
+
+            <section class="table-card import-guide">
+              <div class="table-toolbar">
+                <div>
+                  <h2>Como importar a planilha de uso mútuo</h2>
+                  <p>Na aba Consulta de Projetos, use Importar CSV/XLSX. A primeira linha da planilha deve conter os nomes das colunas abaixo.</p>
+                </div>
+                <i data-lucide="file-spreadsheet"></i>
+              </div>
+
+              <div class="import-guide-grid">
+                <article class="assist-card">
+                  <h2>Ocupação/Regularização</h2>
+                  <p>Use para projetos aprovados/concluídos de ocupação de postes novos ou regularização.</p>
+                  <ul class="column-list">
+                    <li>Ordem de venda</li>
+                    <li>Empresa</li>
+                    <li>Tipo</li>
+                    <li>Mês de referência</li>
+                    <li>Parecer</li>
+                    <li>Parceiro</li>
+                    <li>Valor</li>
+                    <li>Multiplicação ponto</li>
+                    <li>Carta</li>
+                    <li>Município</li>
+                    <li>Data do envio da carta</li>
+                    <li>Postes</li>
+                  </ul>
+                </article>
+
+                <article class="assist-card">
+                  <h2>Desocupação</h2>
+                  <p>Use para projetos de desocupação. A data da solicitação inicia o controle de 90 dias; a carta finaliza.</p>
+                  <ul class="column-list">
+                    <li>Ordem de venda</li>
+                    <li>Empresa</li>
+                    <li>Tipo</li>
+                    <li>Mês de referência</li>
+                    <li>Parecer</li>
+                    <li>Parceiro</li>
+                    <li>Valor</li>
+                    <li>Multiplicação ponto</li>
+                    <li>Carta</li>
+                    <li>Município</li>
+                    <li>Data de solicitação</li>
+                    <li>Data do envio da carta</li>
+                    <li>Postes</li>
+                  </ul>
+                </article>
+
+                <article class="assist-card">
+                  <h2>Negados</h2>
+                  <p>Use para projetos já negados. Informe o motivo e a data em que virou NE.</p>
+                  <ul class="column-list">
+                    <li>Ordem de venda</li>
+                    <li>Empresa</li>
+                    <li>Tipo</li>
+                    <li>Mês de referência</li>
+                    <li>Parecer</li>
+                    <li>Parceiro</li>
+                    <li>Valor</li>
+                    <li>Multiplicação ponto</li>
+                    <li>Carta</li>
+                    <li>Município</li>
+                    <li>Data de notificação</li>
+                    <li>Data transformado em NE</li>
+                    <li>Motivo da negativa</li>
+                    <li>Postes</li>
+                  </ul>
+                </article>
+              </div>
+
+              <div class="import-guide-notes">
+                <strong>Observações importantes</strong>
+                <p>Empresa, Parceiro e Valor também alimentam automaticamente o Banco de Empresas quando a empresa ainda não existe. Município, Tipo, Parecer, Status e Mês devem seguir os nomes usados pelo sistema.</p>
               </div>
             </section>
           </section>
