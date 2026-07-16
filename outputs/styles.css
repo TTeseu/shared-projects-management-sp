@@ -1673,7 +1673,7 @@ input[readonly] {
 }
 
 .projects-table-occupation .col-company {
-  width: 13%;
+  width: 12%;
 }
 
 .projects-table-occupation .col-partner {
@@ -1685,15 +1685,15 @@ input[readonly] {
 }
 
 .projects-table-occupation .col-letter {
-  width: 8%;
+  width: 7.5%;
 }
 
 .projects-table-occupation .col-city {
-  width: 12%;
+  width: 11%;
 }
 
 .projects-table-occupation .col-type {
-  width: 13%;
+  width: 12%;
 }
 
 .projects-table-occupation .col-opinion {
@@ -1705,7 +1705,7 @@ input[readonly] {
 }
 
 .projects-table-occupation .col-date {
-  width: 8.5%;
+  width: 8%;
 }
 
 .projects-table-occupation .col-month {
@@ -1721,7 +1721,7 @@ input[readonly] {
 }
 
 .projects-table-occupation .col-actions {
-  width: 5%;
+  width: 8%;
 }
 
 .projects-table-vacancy .col-company {
