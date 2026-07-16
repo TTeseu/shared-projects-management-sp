@@ -594,8 +594,10 @@ function syncProjectsWithCompany(companyId) {
     if (project.companyId === companyId) {
       project.companyName = company.name;
       project.partner = company.partner;
-      project.pointValue = company.pointValue;
-      project.multipliedValue = calculateMultiplied(company.pointValue, project.poles);
+      if (shouldUpdateProjectPointValueFromCompany(project)) {
+        project.pointValue = company.pointValue;
+        project.multipliedValue = calculateMultiplied(company.pointValue, project.poles);
+      }
       project.updatedAt = new Date().toISOString();
     }
   });
@@ -2269,12 +2271,19 @@ function submitProjectEdit(event) {
   const type = $("#editType").value;
   const status = $("#editStatus").value;
   const poles = Number($("#editPoles").value);
+  const sameCompany = original.companyId
+    ? original.companyId === company.id
+    : normalize(original.companyName) === normalize(company.name);
+  const originalPointValue = Number(original.pointValue);
+  const pointValue = sameCompany && Number.isFinite(originalPointValue) && originalPointValue > 0
+    ? originalPointValue
+    : company.pointValue;
   const updated = {
     ...original,
     companyId: company.id,
     companyName: company.name,
     partner: company.partner,
-    pointValue: company.pointValue,
+    pointValue,
     order: $("#editOrder").value.trim(),
     letter: $("#editLetter").value.trim(),
     city: $("#editCity").value,
@@ -2285,7 +2294,7 @@ function submitProjectEdit(event) {
     mainDate: $("#editMainDate").value,
     month: $("#editMonth").value,
     poles,
-    multipliedValue: calculateMultiplied(company.pointValue, poles),
+    multipliedValue: calculateMultiplied(pointValue, poles),
     poleExchange: status === "Aguardando" && $("#editPoleExchange").value === "Sim",
     denialReason: status === "Negado" ? $("#editReason").value : "",
     neDate: status === "Negado" ? $("#editNeDate").value : "",
@@ -2399,6 +2408,25 @@ function findCompanyByNameIn(companies, name) {
 
 function calculateMultiplied(pointValue, poles) {
   return Number((Number(pointValue || 0) * Number(poles || 0)).toFixed(2));
+}
+
+function shouldUpdateProjectPointValueFromCompany(project, now = new Date()) {
+  const projectDate = getProjectPriceReferenceDate(project);
+  if (!projectDate) return false;
+  const projectYear = Number(projectDate.slice(0, 4));
+  const projectMonth = Number(projectDate.slice(5, 7));
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  if (projectYear === currentYear && projectMonth === currentMonth) return true;
+  const julyJuneExceptionApplies = currentYear === 2026 && currentMonth === 7;
+  return julyJuneExceptionApplies && projectYear === 2026 && projectMonth === 6;
+}
+
+function getProjectPriceReferenceDate(project) {
+  if (project.type === "Desocupação" && project.status === "Concluído") {
+    return project.vacancyLetterDate || project.mainDate || "";
+  }
+  return project.mainDate || "";
 }
 
 function parseMoney(value) {
@@ -2648,7 +2676,7 @@ function importProjects(event) {
       const dateKind = resolveDateKind(type, status);
       const mainDate = resolveImportedMainDate(row, type, status);
       const poles = parseCsvInteger(getCsvValue(row, ["quantidade de postes", "postes", "qtd postes"]));
-      const pointValue = company.pointValue;
+      const pointValue = Number.isFinite(rowPointValue) && rowPointValue > 0 ? rowPointValue : company.pointValue;
       const project = {
         id: uid("project"),
         companyId: company.id,
