@@ -1667,60 +1667,167 @@ input[readonly] {
 }
 
 .projects-table {
-  min-width: 1320px;
+  min-width: 0;
   table-layout: fixed;
+  font-size: 12px;
 }
 
-.projects-table .col-company {
-  width: 220px;
+.projects-table-occupation .col-company {
+  width: 13%;
 }
 
-.projects-table .col-partner {
-  width: 112px;
+.projects-table-occupation .col-partner {
+  width: 7%;
 }
 
-.projects-table .col-order {
-  width: 94px;
+.projects-table-occupation .col-order {
+  width: 6%;
 }
 
-.projects-table .col-letter {
-  width: 145px;
+.projects-table-occupation .col-letter {
+  width: 8%;
 }
 
-.projects-table .col-city {
-  width: 190px;
+.projects-table-occupation .col-city {
+  width: 12%;
 }
 
-.projects-table .col-type {
-  width: 190px;
+.projects-table-occupation .col-type {
+  width: 13%;
 }
 
-.projects-table .col-opinion,
-.projects-table .col-status,
-.projects-table .col-month,
-.projects-table .col-poles {
-  width: 92px;
+.projects-table-occupation .col-opinion {
+  width: 4.5%;
 }
 
-.projects-table .col-date {
-  width: 142px;
+.projects-table-occupation .col-status {
+  width: 5.5%;
 }
 
-.projects-table .col-value {
-  width: 150px;
+.projects-table-occupation .col-date {
+  width: 8.5%;
 }
 
-.projects-table .col-count,
-.projects-table .col-alert {
-  width: 135px;
+.projects-table-occupation .col-month {
+  width: 5%;
 }
 
-.projects-table .col-reason {
-  width: 250px;
+.projects-table-occupation .col-poles {
+  width: 4.5%;
 }
 
-.projects-table .col-actions {
-  width: 148px;
+.projects-table-occupation .col-value {
+  width: 8%;
+}
+
+.projects-table-occupation .col-actions {
+  width: 5%;
+}
+
+.projects-table-vacancy .col-company {
+  width: 13%;
+}
+
+.projects-table-vacancy .col-order {
+  width: 6%;
+}
+
+.projects-table-vacancy .col-letter {
+  width: 9%;
+}
+
+.projects-table-vacancy .col-city {
+  width: 15%;
+}
+
+.projects-table-vacancy .col-date,
+.projects-table-vacancy .col-count,
+.projects-table-vacancy .col-value {
+  width: 9%;
+}
+
+.projects-table-vacancy .col-alert {
+  width: 8%;
+}
+
+.projects-table-vacancy .col-actions {
+  width: 13%;
+}
+
+.projects-table-waiting .col-company {
+  width: 13%;
+}
+
+.projects-table-waiting .col-order {
+  width: 6%;
+}
+
+.projects-table-waiting .col-letter {
+  width: 8%;
+}
+
+.projects-table-waiting .col-city,
+.projects-table-waiting .col-type {
+  width: 12%;
+}
+
+.projects-table-waiting .col-date {
+  width: 9%;
+}
+
+.projects-table-waiting .col-status {
+  width: 6%;
+}
+
+.projects-table-waiting .col-count,
+.projects-table-waiting .col-value {
+  width: 8%;
+}
+
+.projects-table-waiting .col-alert {
+  width: 7%;
+}
+
+.projects-table-waiting .col-actions {
+  width: 11%;
+}
+
+.projects-table-denied .col-company {
+  width: 12%;
+}
+
+.projects-table-denied .col-partner {
+  width: 6%;
+}
+
+.projects-table-denied .col-order {
+  width: 5%;
+}
+
+.projects-table-denied .col-letter {
+  width: 7%;
+}
+
+.projects-table-denied .col-city,
+.projects-table-denied .col-type {
+  width: 10%;
+}
+
+.projects-table-denied .col-opinion {
+  width: 4%;
+}
+
+.projects-table-denied .col-date,
+.projects-table-denied .col-value {
+  width: 8%;
+}
+
+.projects-table-denied .col-reason {
+  width: 15%;
+}
+
+.projects-table-denied .col-actions {
+  width: 7%;
 }
 
 .data-table.compact {
@@ -1744,6 +1851,7 @@ input[readonly] {
 .projects-table td {
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-inline: 8px;
 }
 
 .data-table th {
@@ -1769,11 +1877,14 @@ input[readonly] {
 .table-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .table-actions button {
-  min-height: 36px;
+  min-height: 32px;
+  padding: 0 9px;
+  font-size: 12px;
 }
 
 .user-cell {

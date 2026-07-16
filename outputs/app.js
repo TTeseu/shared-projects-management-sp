@@ -1820,6 +1820,7 @@ function renderProjectTable() {
   const copy = sectionCopy[state.currentSection];
   $("#querySectionTitle").textContent = copy.title;
   $("#querySectionSubtitle").textContent = copy.subtitle;
+  $("#projectsTable").className = `data-table projects-table projects-table-${state.currentSection}`;
   const projects = sortProjectsByLetterDate(
     getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection),
     "desc"
@@ -1968,15 +1969,6 @@ function renderProjectRows(projects, options = {}) {
   $$("[data-deny-project]").forEach((button) =>
     button.addEventListener("click", () => openDenyModal(button.dataset.denyProject))
   );
-  $$("[data-vacancy-letter]").forEach((input) => {
-    input.addEventListener("blur", () => setVacancyLetterDate(input.dataset.vacancyLetter, input.value));
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        input.blur();
-      }
-    });
-  });
 }
 
 function renderProjectRow(project, options = {}) {
@@ -1999,7 +1991,7 @@ function renderProjectRow(project, options = {}) {
         <td>${formatDate(project.mainDate)}</td>
         <td>${escapeHtml(meta.countLabel)}</td>
         <td>${meta.statusBadge}</td>
-        <td><input type="date" min="2000-01-01" max="2099-12-31" value="${project.vacancyLetterDate || ""}" data-vacancy-letter="${project.id}" aria-label="Data do envio da carta" /></td>
+        <td>${formatDate(project.vacancyLetterDate)}</td>
         <td>${formatMoney(project.multipliedValue)}</td>
         <td>${actions}</td>
       </tr>
