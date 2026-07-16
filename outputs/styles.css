@@ -147,8 +147,14 @@ svg {
   inset: 0 auto 0 0;
   z-index: 30;
   width: var(--sidebar-width);
+  height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   background:
     linear-gradient(180deg, rgba(19, 31, 40, 0.86), rgba(7, 12, 17, 0.98)),
     var(--sidebar);
@@ -249,7 +255,7 @@ svg {
 
 .side-profile {
   margin-top: auto;
-  padding: 18px 20px 24px;
+  padding: 18px 20px max(82px, calc(24px + env(safe-area-inset-bottom)));
   border-top: 1px solid rgba(49, 64, 78, 0.5);
 }
 
