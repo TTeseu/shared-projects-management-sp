@@ -336,7 +336,7 @@ function sanitizeChecklistHtml(value) {
     Array.from(element.attributes).forEach((attribute) => {
       const name = attribute.name.toLowerCase();
       const rawValue = attribute.value || "";
-      if (name.startsWith("on")) {
+      if (name.startsWith("on") || shouldRemoveChecklistAttribute(name, tag)) {
         element.removeAttribute(attribute.name);
         return;
       }
@@ -350,6 +350,11 @@ function sanitizeChecklistHtml(value) {
     }
   });
   return template.innerHTML;
+}
+
+function shouldRemoveChecklistAttribute(name, tag) {
+  if (name === "href" && tag === "a") return false;
+  return !["colspan", "rowspan"].includes(name);
 }
 
 function saveData() {
@@ -1221,6 +1226,11 @@ function bindChecklistControls() {
   $$("[data-copy-checklist]").forEach((button) => {
     button.addEventListener("click", () => copyChecklistText(button.dataset.copyChecklist));
   });
+  ["#checklistOccupationText", "#checklistVacancyText"].forEach((selector) => {
+    const editor = $(selector);
+    if (!editor) return;
+    editor.addEventListener("paste", pasteCleanChecklistHtml);
+  });
 }
 
 function bindUserAdmin() {
@@ -1285,6 +1295,15 @@ function saveChecklistTemplates() {
   saveData();
   renderChecklist();
   showToast("Checklist salvo com formatação.", "success");
+}
+
+function pasteCleanChecklistHtml(event) {
+  if (authState.user?.role !== "admin") return;
+  event.preventDefault();
+  const html = event.clipboardData?.getData("text/html");
+  const text = event.clipboardData?.getData("text/plain") || "";
+  const cleanHtml = html ? sanitizeChecklistHtml(html) : plainTextToChecklistHtml(text);
+  document.execCommand("insertHTML", false, cleanHtml);
 }
 
 async function copyChecklistText(kind) {
@@ -2373,10 +2392,8 @@ function confirmDenyProject() {
   project.updatedAt = new Date().toISOString();
   saveData();
   closeDenyModal();
-  state.currentSection = "denied";
-  $$(".query-tab").forEach((button) => button.classList.toggle("active", button.dataset.section === "denied"));
   renderAll();
-  showToast("Projeto movido para Negados.", "success");
+  showToast("Projeto negado e removido da janela Aguardando.", "success");
 }
 
 function activateTab(tabId) {

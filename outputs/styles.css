@@ -606,6 +606,14 @@ p {
   outline: none;
   line-height: 1.45;
   transition: 150ms ease;
+  caret-color: var(--teal);
+}
+
+.checklist-rich-editor *,
+.checklist-rich-editor [style] {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: inherit !important;
 }
 
 .checklist-editor:first-child .checklist-rich-editor {
@@ -637,7 +645,7 @@ p {
 }
 
 .checklist-rich-editor a {
-  color: #c09cff;
+  color: #c09cff !important;
   text-decoration: underline;
 }
 
