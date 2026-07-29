@@ -1769,7 +1769,7 @@ input[readonly] {
 }
 
 .projects-table-waiting .col-company {
-  width: 13%;
+  width: 11%;
 }
 
 .projects-table-waiting .col-order {
@@ -1777,12 +1777,12 @@ input[readonly] {
 }
 
 .projects-table-waiting .col-letter {
-  width: 8%;
+  width: 7%;
 }
 
 .projects-table-waiting .col-city,
 .projects-table-waiting .col-type {
-  width: 12%;
+  width: 11%;
 }
 
 .projects-table-waiting .col-date {
@@ -1803,7 +1803,7 @@ input[readonly] {
 }
 
 .projects-table-waiting .col-actions {
-  width: 11%;
+  width: 16%;
 }
 
 .projects-table-denied .col-company {

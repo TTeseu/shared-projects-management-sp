@@ -1990,6 +1990,9 @@ function renderProjectRows(projects, options = {}) {
   $$("[data-deny-project]").forEach((button) =>
     button.addEventListener("click", () => openDenyModal(button.dataset.denyProject))
   );
+  $$("[data-approve-project]").forEach((button) =>
+    button.addEventListener("click", () => approveWaitingProject(button.dataset.approveProject))
+  );
 }
 
 function renderProjectRow(project, options = {}) {
@@ -2034,7 +2037,8 @@ function renderProjectRow(project, options = {}) {
         <td>${formatMoney(project.multipliedValue)}</td>
         <td>
           <div class="table-actions">
-            <button class="danger icon-text" type="button" data-deny-project="${project.id}"><i data-lucide="ban"></i>Negar</button>
+            <button class="secondary icon-text" type="button" data-approve-project="${project.id}"><i data-lucide="check"></i>Aprovar</button>
+            ${meta.canDeny ? `<button class="danger icon-text" type="button" data-deny-project="${project.id}"><i data-lucide="ban"></i>Negar</button>` : ""}
             <button class="secondary icon-text" type="button" data-edit-project="${project.id}"><i data-lucide="pencil"></i>Editar</button>
             <button class="danger icon-text" type="button" data-delete-project="${project.id}"><i data-lucide="trash-2"></i>Excluir</button>
           </div>
@@ -2156,6 +2160,7 @@ function getProjectMeta(project) {
         countLabel: "Sem contagem",
         hasAlert: false,
         isFinalized: false,
+        canDeny: false,
         statusBadge: badge("Troca de postes", "blue"),
       };
     }
@@ -2165,6 +2170,7 @@ function getProjectMeta(project) {
       countLabel: elapsed < 0 ? "Data futura" : `${elapsed} de 10 dias`,
       hasAlert: hit,
       isFinalized: false,
+      canDeny: hit,
       statusBadge: hit ? badge("Prazo de 10 dias atingido", "red") : badge("Em contagem", "amber"),
     };
   }
@@ -2177,6 +2183,7 @@ function getProjectMeta(project) {
       countLabel: finalized ? "Contagem encerrada" : elapsed < 0 ? "Data futura" : `${elapsed} de 90 dias`,
       hasAlert: alert,
       isFinalized: finalized,
+      canDeny: false,
       statusBadge: finalized
         ? badge("Finalizado", "blue")
         : alert
@@ -2189,6 +2196,7 @@ function getProjectMeta(project) {
     countLabel: "",
     hasAlert: false,
     isFinalized: false,
+    canDeny: false,
     statusBadge: statusBadge(project.status),
   };
 }
@@ -2366,6 +2374,11 @@ function isAllowedBusinessDate(value) {
 }
 
 function openDenyModal(id) {
+  const project = state.projects.find((item) => item.id === id);
+  if (project?.status === "Aguardando" && !getProjectMeta(project).canDeny) {
+    showToast("A negativa só fica disponível após completar 10 dias.", "warning");
+    return;
+  }
   state.pendingDenyId = id;
   $("#denyReason").value = "";
   openModal("denyModal");
@@ -2374,6 +2387,32 @@ function openDenyModal(id) {
 function closeDenyModal() {
   state.pendingDenyId = null;
   closeModal("denyModal");
+}
+
+function approveWaitingProject(id) {
+  const project = state.projects.find((item) => item.id === id);
+  if (!project || project.status !== "Aguardando") return;
+  const today = new Date();
+  const company = state.companies.find((item) => item.id === project.companyId) || findCompanyByName(project.companyName);
+  const pointValue = company?.pointValue || project.pointValue;
+  if (company) {
+    project.companyId = company.id;
+    project.companyName = company.name;
+    project.partner = company.partner;
+  }
+  project.status = "Concluído";
+  project.poleExchange = false;
+  project.denialReason = "";
+  project.neDate = "";
+  project.dateKind = resolveDateKind(project.type, project.status);
+  project.mainDate = todayInputValue();
+  project.month = MONTHS[today.getMonth()] || project.month;
+  project.pointValue = pointValue;
+  project.multipliedValue = calculateMultiplied(pointValue, project.poles);
+  project.updatedAt = today.toISOString();
+  saveData();
+  renderAll();
+  showToast("Projeto aprovado e removido da janela Aguardando.", "success");
 }
 
 function confirmDenyProject() {
