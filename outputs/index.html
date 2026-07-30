@@ -696,7 +696,24 @@
                 <div class="field"><label for="filterCity">Município</label><select id="filterCity"></select></div>
                 <div class="field"><label for="filterType">Tipo</label><select id="filterType"></select></div>
                 <div class="field"><label for="filterOpinion">Parecer</label><select id="filterOpinion"></select></div>
-                <div class="field"><label for="filterMonth">Mês de referência</label><select id="filterMonth"></select></div>
+                <div class="field span-6 month-filter">
+                  <label for="filterMonthMode">Mês de referência</label>
+                  <div class="month-filter-card">
+                    <div class="month-filter-top">
+                      <select id="filterMonthMode" aria-label="Modo do filtro de mês">
+                        <option value="">Todos os meses</option>
+                        <option value="range">Intervalo de meses</option>
+                        <option value="specific">Meses específicos</option>
+                      </select>
+                    </div>
+                    <div class="month-range-controls" id="filterMonthRangeControls">
+                      <select id="filterMonthStart" aria-label="Mês inicial"></select>
+                      <span>até</span>
+                      <select id="filterMonthEnd" aria-label="Mês final"></select>
+                    </div>
+                    <div class="month-chip-grid" id="filterMonthSpecificControls" aria-label="Meses específicos"></div>
+                  </div>
+                </div>
                 <div class="field"><label for="filterYear">Ano</label><select id="filterYear"></select></div>
                 <div class="field"><label for="filterReason">Motivo da negativa</label><select id="filterReason"></select></div>
                 <label class="check-row small"><input id="filterFinalized" type="checkbox" /> <span>Projetos finalizados</span></label>

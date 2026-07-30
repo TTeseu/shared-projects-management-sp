@@ -441,9 +441,10 @@ function populateSelects() {
   ["#singleStatus", "#batchStatus", "#editStatus"].forEach((selector) =>
     fillSelect($(selector), STATUSES, selector.includes("filter") ? "Todos" : "Selecione")
   );
-  ["#singleMonth", "#batchMonth", "#editMonth", "#filterMonth"].forEach((selector) =>
+  ["#singleMonth", "#batchMonth", "#editMonth"].forEach((selector) =>
     fillSelect($(selector), MONTHS, selector.includes("filter") ? "Todos" : "Selecione")
   );
+  setupMonthComparisonFilter();
   fillSelect($("#editReason"), DENIAL_REASONS, "Selecione");
   fillSelect($("#denyReason"), DENIAL_REASONS, "Selecione");
   fillSelect($("#singleReason"), DENIAL_REASONS, "Selecione");
@@ -465,6 +466,21 @@ function fillSelect(select, values, placeholder) {
     option.textContent = value;
     select.appendChild(option);
   });
+}
+
+function setupMonthComparisonFilter() {
+  fillSelect($("#filterMonthStart"), MONTHS, "De");
+  fillSelect($("#filterMonthEnd"), MONTHS, "Até");
+  const specific = $("#filterMonthSpecificControls");
+  if (!specific) return;
+  specific.innerHTML = MONTHS.map(
+    (month) => `
+      <label class="month-chip">
+        <input type="checkbox" value="${escapeAttr(month)}" data-filter-month />
+        <span>${escapeHtml(month.slice(0, 3))}</span>
+      </label>
+    `
+  ).join("");
 }
 
 function setDefaultCadastroOpinions() {
@@ -1159,7 +1175,9 @@ function bindQueryControls() {
     "filterCity",
     "filterType",
     "filterOpinion",
-    "filterMonth",
+    "filterMonthMode",
+    "filterMonthStart",
+    "filterMonthEnd",
     "filterYear",
     "filterReason",
     "filterFinalized",
@@ -1172,12 +1190,18 @@ function bindQueryControls() {
       element.addEventListener("change", renderQueryView);
     }
   });
+  $$("[data-filter-month]").forEach((element) => {
+    element.addEventListener("change", renderQueryView);
+  });
   $("#clearFiltersBtn").addEventListener("click", () => {
     filterIds.forEach((id) => {
       const element = $(`#${id}`);
       if (!element) return;
       if (element.type === "checkbox") element.checked = false;
       else element.value = "";
+    });
+    $$("[data-filter-month]").forEach((element) => {
+      element.checked = false;
     });
     renderQueryView();
   });
@@ -1259,8 +1283,15 @@ function renderAll() {
 }
 
 function renderQueryView() {
+  renderMonthComparisonControls();
   renderSummaryCards();
   renderProjectTable();
+}
+
+function renderMonthComparisonControls() {
+  const mode = $("#filterMonthMode")?.value || "";
+  $("#filterMonthRangeControls")?.classList.toggle("active", mode === "range");
+  $("#filterMonthSpecificControls")?.classList.toggle("active", mode === "specific");
 }
 
 function renderChecklist() {
@@ -2084,6 +2115,27 @@ function renderProjectRow(project, options = {}) {
   `;
 }
 
+function getSelectedMonthFilters() {
+  const mode = $("#filterMonthMode")?.value || "";
+  if (mode === "range") return getRangeMonthFilters();
+  if (mode === "specific") {
+    const selected = $$("[data-filter-month]:checked").map((input) => input.value).filter(Boolean);
+    return selected.length ? selected : null;
+  }
+  return null;
+}
+
+function getRangeMonthFilters() {
+  const start = $("#filterMonthStart")?.value || "";
+  const end = $("#filterMonthEnd")?.value || "";
+  if (!start && !end) return null;
+  const startIndex = start ? MONTHS.indexOf(start) : 0;
+  const endIndex = end ? MONTHS.indexOf(end) : MONTHS.length - 1;
+  if (startIndex < 0 || endIndex < 0) return null;
+  if (startIndex <= endIndex) return MONTHS.slice(startIndex, endIndex + 1);
+  return [...MONTHS.slice(startIndex), ...MONTHS.slice(0, endIndex + 1)];
+}
+
 function getFilteredProjects() {
   const filters = {
     company: normalize($("#filterCompany").value),
@@ -2093,7 +2145,7 @@ function getFilteredProjects() {
     type: $("#filterType").value,
     opinion: $("#filterOpinion").value,
     status: "",
-    month: $("#filterMonth").value,
+    months: getSelectedMonthFilters(),
     year: $("#filterYear").value,
     reason: $("#filterReason").value,
     finalized: $("#filterFinalized").checked,
@@ -2136,7 +2188,7 @@ function getFilteredProjects() {
     if (filters.type && project.type !== filters.type) return false;
     if (filters.opinion && project.opinion !== filters.opinion) return false;
     if (filters.status && project.status !== filters.status) return false;
-    if (filters.month && getProjectMonth(project) !== filters.month) return false;
+    if (filters.months && !filters.months.includes(getProjectMonth(project))) return false;
     if (filters.year && getProjectYear(project) !== filters.year) return false;
     if (filters.reason && project.denialReason !== filters.reason) return false;
     if (filters.finalized && !meta.isFinalized) return false;

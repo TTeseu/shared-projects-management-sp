@@ -1408,6 +1408,79 @@ input[readonly] {
   align-self: end;
 }
 
+.month-filter-card {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(52, 69, 84, 0.92);
+  border-radius: 8px;
+  background: rgba(13, 21, 29, 0.92);
+}
+
+.month-filter-top select,
+.month-range-controls select {
+  min-height: 42px;
+}
+
+.month-range-controls {
+  display: none;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.month-range-controls.active {
+  display: grid;
+}
+
+.month-range-controls span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.month-chip-grid {
+  display: none;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.month-chip-grid.active {
+  display: grid;
+}
+
+.month-chip {
+  position: relative;
+  min-width: 0;
+}
+
+.month-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.month-chip span {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  border: 1px solid rgba(52, 69, 84, 0.92);
+  border-radius: 8px;
+  background: rgba(10, 16, 22, 0.92);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  transition: 150ms ease;
+}
+
+.month-chip input:checked + span {
+  border-color: rgba(33, 199, 168, 0.74);
+  background: rgba(33, 199, 168, 0.16);
+  color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(33, 199, 168, 0.08);
+}
+
 .finance-card {
   position: relative;
   display: flex;
