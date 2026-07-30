@@ -1842,9 +1842,8 @@ function renderProjectTable() {
   $("#querySectionTitle").textContent = copy.title;
   $("#querySectionSubtitle").textContent = copy.subtitle;
   $("#projectsTable").className = `data-table projects-table projects-table-${state.currentSection}`;
-  const projects = sortProjectsByLetterDate(
-    getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection),
-    "desc"
+  const projects = sortProjectsForConsultation(
+    getFilteredProjects().filter((project) => getProjectSection(project) === state.currentSection)
   );
   const tableOptions = {
     showPoleExchange: state.currentSection === "waiting" && projects.some((project) => project.poleExchange),
@@ -2234,6 +2233,36 @@ function sortProjectsByLetterDate(projects, direction = "desc") {
     const aTime = getDateSortTime(getProjectLetterSortDate(a), direction);
     const bTime = getDateSortTime(getProjectLetterSortDate(b), direction);
     if (aTime !== bTime) return direction === "asc" ? aTime - bTime : bTime - aTime;
+    return String(a.companyName || "").localeCompare(String(b.companyName || ""), "pt-BR");
+  });
+}
+
+function sortProjectsForConsultation(projects) {
+  if (state.currentSection === "vacancy") return sortVacancyProjectsForConsultation(projects);
+  return sortProjectsByLetterDate(projects, "desc");
+}
+
+function sortVacancyProjectsForConsultation(projects) {
+  return projects.slice().sort((a, b) => {
+    const aFinalized = Boolean(a.vacancyLetterDate);
+    const bFinalized = Boolean(b.vacancyLetterDate);
+    if (aFinalized !== bFinalized) return aFinalized ? 1 : -1;
+
+    if (!aFinalized && !bFinalized) {
+      const aDays = daysElapsed(a.mainDate);
+      const bDays = daysElapsed(b.mainDate);
+      if (aDays !== bDays) return bDays - aDays;
+      const aRequestTime = getDateSortTime(a.mainDate, "desc");
+      const bRequestTime = getDateSortTime(b.mainDate, "desc");
+      if (aRequestTime !== bRequestTime) return aRequestTime - bRequestTime;
+    }
+
+    if (aFinalized && bFinalized) {
+      const aLetterTime = getDateSortTime(a.vacancyLetterDate, "desc");
+      const bLetterTime = getDateSortTime(b.vacancyLetterDate, "desc");
+      if (aLetterTime !== bLetterTime) return bLetterTime - aLetterTime;
+    }
+
     return String(a.companyName || "").localeCompare(String(b.companyName || ""), "pt-BR");
   });
 }
