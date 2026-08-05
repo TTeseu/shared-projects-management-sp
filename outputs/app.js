@@ -1457,7 +1457,7 @@ function renderDashboardCharts({ dashboardProjects, activeProjects, vacancyProje
     },
     { label: "Desocupação", value: vacancyProjects.length, tone: "purple", color: "#7C5CFF" },
     { label: "Aguardando", value: waitingProjects.length, tone: "amber", color: "#F59E0B" },
-    { label: "Negado", value: deniedProjects.length, tone: "red", color: "#EF4444" },
+    { label: "Negado", value: deniedProjects.length, tone: "black", color: "#05080C" },
   ];
   renderStatusDonut(statusSegments, dashboardProjects.length);
   renderTypeBars(dashboardProjects);
@@ -1504,7 +1504,7 @@ function renderTypeBars(projectsSource) {
       { tone: "green", value: projects.filter((project) => getProjectSection(project) === "occupation").length },
       { tone: "amber", value: projects.filter((project) => getProjectSection(project) === "waiting").length },
       { tone: "blue", value: projects.filter((project) => getProjectSection(project) === "vacancy").length },
-      { tone: "red", value: projects.filter((project) => getProjectSection(project) === "denied").length },
+      { tone: "black", value: projects.filter((project) => getProjectSection(project) === "denied").length },
     ];
     return `
       <div class="type-bar-row">
@@ -1821,7 +1821,7 @@ function renderSummaryCards() {
     ["Faturamento ativo", formatMoney(values.activeBilling), "Ocupação e regularização", "green", "wallet"],
     ["Saída por desocupação", formatMoney(values.vacancyExit), "Valor que sairá do faturamento", "purple", "log-out"],
     ["Valor aguardando", formatMoney(values.waiting), "Projetos com prazo em aberto", "amber", "clock-3"],
-    ["Valor negado", formatMoney(values.denied), "Projetos negados", "red", "ban"],
+    ["Valor negado", formatMoney(values.denied), "Projetos negados", "black", "ban"],
     ["Total de projetos", totals.all, `${totals.alerts} alerta(s) ativo(s)`, "teal", "folder-kanban"],
   ]
     .map(
@@ -2640,7 +2640,7 @@ function normalize(value) {
 function statusBadge(status) {
   if (status === "Concluído") return badge("Concluído", "blue");
   if (status === "Aguardando") return badge("Aguardando", "amber");
-  if (status === "Negado") return badge("Negado", "red");
+  if (status === "Negado") return badge("Negado", "black");
   return badge(status || "-", "neutral");
 }
 
