@@ -1219,6 +1219,11 @@ function bindModals() {
     if (event.target.id === "editProjectModal") closeProjectEditor();
   });
   $("#editProjectForm").addEventListener("submit", submitProjectEdit);
+  $("#closeProjectDetailsBtn").addEventListener("click", closeProjectDetails);
+  $("#projectDetailsCloseBtn").addEventListener("click", closeProjectDetails);
+  $("#projectDetailsModal").addEventListener("click", (event) => {
+    if (event.target.id === "projectDetailsModal") closeProjectDetails();
+  });
   $("#denyCancelBtn").addEventListener("click", closeDenyModal);
   $("#denyConfirmBtn").addEventListener("click", confirmDenyProject);
 }
@@ -1390,11 +1395,13 @@ function renderDashboard() {
   const waitingProjects = dashboardProjects.filter((project) => getProjectSection(project) === "waiting");
   const deniedProjects = dashboardProjects.filter((project) => getProjectSection(project) === "denied");
   const completedProjects = dashboardProjects.filter((project) => project.status === "Concluído");
+  const approvedPoles = sumProjectPoles(activeProjects);
+  const vacancyPoles = sumProjectPoles(vacancyProjects);
   const waitingAlerts = dashboardProjects
     .filter((project) => project.status === "Aguardando" && !project.poleExchange && daysElapsed(project.mainDate) >= 7)
     .sort((a, b) => daysElapsed(b.mainDate) - daysElapsed(a.mainDate));
   const vacancyAlerts = dashboardProjects
-    .filter((project) => project.type === "Desocupação" && project.status === "Concluído" && !project.vacancyLetterDate && daysElapsed(project.mainDate) >= 70)
+    .filter((project) => project.type === "Desocupação" && project.status !== "Negado" && !project.vacancyLetterDate && daysElapsed(project.mainDate) >= 70)
     .sort((a, b) => daysElapsed(b.mainDate) - daysElapsed(a.mainDate));
   const latest = dashboardProjects
     .slice()
@@ -1404,7 +1411,9 @@ function renderDashboard() {
   setText("#dashActiveBilling", formatMoney(sumProjectsBy(() => true, activeProjects)));
   setText("#dashVacancyExit", formatMoney(sumProjectsBy(() => true, vacancyProjects)));
   setText("#dashActiveCount", activeProjects.length);
+  setText("#dashApprovedPoles", approvedPoles);
   setText("#dashVacancyCount", vacancyProjects.length);
+  setText("#dashVacancyPoles", vacancyPoles);
   setText("#dashWaitingCount", waitingProjects.length);
   setText("#dashCompletedCount", completedProjects.length);
   setText("#dashWaitingAlertCount", waitingAlerts.length);
@@ -1421,7 +1430,7 @@ function renderDashboard() {
       ? latest
           .map(
             (project) => `
-              <tr>
+              <tr class="project-row" data-view-project="${project.id}" tabindex="0">
                 <td>${escapeHtml(project.companyName)}</td>
                 <td>${typeBadge(project.type)}</td>
                 <td>${statusBadge(project.status)}</td>
@@ -1434,11 +1443,14 @@ function renderDashboard() {
           )
           .join("")
       : `<tr><td colspan="6"><div class="empty-state">Nenhum projeto cadastrado ainda.</div></td></tr>`;
+    bindProjectPreviewRows(latestBody);
   }
 }
 
 function getDashboardProjects() {
-  return state.dashboardYear ? state.projects.filter((project) => getProjectYear(project) === state.dashboardYear) : state.projects;
+  return state.dashboardYear
+    ? state.projects.filter((project) => getProjectOpeningDate(project).slice(0, 4) === state.dashboardYear)
+    : state.projects;
 }
 
 function renderDashboardCharts({ dashboardProjects, activeProjects, vacancyProjects, waitingProjects, deniedProjects }) {
@@ -1528,7 +1540,7 @@ function renderMonthlyChart(projectsSource) {
   const counts = months.map((month) => ({
     ...month,
     count: projectsSource.filter((project) => {
-      const periodDate = getProjectPeriodDate(project);
+      const periodDate = getProjectOpeningDate(project);
       if (!periodDate) return false;
       if (month.key) return periodDate.slice(0, 7) === month.key;
       return Number(periodDate.slice(5, 7)) === month.month;
@@ -1803,6 +1815,8 @@ function renderSummaryCards() {
     vacancyExit: sumProjectsBy((project) => getProjectSection(project) === "vacancy", filteredProjects),
     waiting: sumProjectsBy((project) => getProjectSection(project) === "waiting", filteredProjects),
     denied: sumProjectsBy((project) => getProjectSection(project) === "denied", filteredProjects),
+    approvedPoles: sumProjectPoles(filteredProjects.filter((project) => getProjectSection(project) === "occupation")),
+    vacancyPoles: sumProjectPoles(filteredProjects.filter((project) => getProjectSection(project) === "vacancy")),
   };
   const completedPercent = allTotals.all ? Math.round((allTotals.completed / allTotals.all) * 100) : 0;
 
@@ -1822,6 +1836,8 @@ function renderSummaryCards() {
     ["Saída por desocupação", formatMoney(values.vacancyExit), "Valor que sairá do faturamento", "purple", "log-out"],
     ["Valor aguardando", formatMoney(values.waiting), "Projetos com prazo em aberto", "amber", "clock-3"],
     ["Valor negado", formatMoney(values.denied), "Projetos negados", "black", "ban"],
+    ["Postes aprovados", values.approvedPoles, "Ocupação e regularização", "green", "utility-pole"],
+    ["Postes em desocupação", values.vacancyPoles, "Quantidade de postes", "purple", "signpost"],
     ["Total de projetos", totals.all, `${totals.alerts} alerta(s) ativo(s)`, "teal", "folder-kanban"],
   ]
     .map(
@@ -2011,6 +2027,8 @@ function renderProjectRows(projects, options = {}) {
 
   body.innerHTML = projects.map((project) => renderProjectRow(project, options)).join("");
 
+  bindProjectPreviewRows(body);
+
   $$("[data-edit-project]").forEach((button) =>
     button.addEventListener("click", () => openProjectEditor(button.dataset.editProject))
   );
@@ -2025,6 +2043,20 @@ function renderProjectRows(projects, options = {}) {
   );
 }
 
+function bindProjectPreviewRows(root) {
+  $$('tr[data-view-project]', root).forEach((row) => {
+    row.addEventListener("click", (event) => {
+      if (event.target.closest("button, a, input, select, label")) return;
+      openProjectDetails(row.dataset.viewProject);
+    });
+    row.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openProjectDetails(row.dataset.viewProject);
+    });
+  });
+}
+
 function renderProjectRow(project, options = {}) {
   const meta = getProjectMeta(project);
   const rowClass = meta.hasAlert ? "alert-row" : "";
@@ -2037,7 +2069,7 @@ function renderProjectRow(project, options = {}) {
 
   if (state.currentSection === "vacancy") {
     return `
-      <tr class="${rowClass}">
+      <tr class="project-row ${rowClass}" data-view-project="${project.id}" tabindex="0">
         <td>${escapeHtml(project.companyName)}</td>
         <td>${escapeHtml(project.order)}</td>
         <td>${escapeHtml(project.letter)}</td>
@@ -2054,7 +2086,7 @@ function renderProjectRow(project, options = {}) {
 
   if (state.currentSection === "waiting") {
     return `
-      <tr class="${rowClass}">
+      <tr class="project-row ${rowClass}" data-view-project="${project.id}" tabindex="0">
         <td>${escapeHtml(project.companyName)}</td>
         <td>${escapeHtml(project.order)}</td>
         <td>${escapeHtml(project.letter)}</td>
@@ -2079,7 +2111,7 @@ function renderProjectRow(project, options = {}) {
 
   if (state.currentSection === "denied") {
     return `
-      <tr class="${rowClass}">
+      <tr class="project-row ${rowClass}" data-view-project="${project.id}" tabindex="0">
         <td>${escapeHtml(project.companyName)}</td>
         <td>${escapeHtml(project.partner)}</td>
         <td>${escapeHtml(project.order)}</td>
@@ -2097,7 +2129,7 @@ function renderProjectRow(project, options = {}) {
   }
 
   return `
-    <tr class="${rowClass}">
+    <tr class="project-row ${rowClass}" data-view-project="${project.id}" tabindex="0">
       <td>${escapeHtml(project.companyName)}</td>
       <td>${escapeHtml(project.partner)}</td>
       <td>${escapeHtml(project.order)}</td>
@@ -2268,9 +2300,17 @@ function getProjectMonth(project) {
 
 function getProjectPeriodDate(project) {
   if (project.type === "Desocupação" && project.status === "Concluído") {
-    return project.vacancyLetterDate || "";
+    return project.vacancyLetterDate || project.mainDate || "";
   }
   return project.mainDate || "";
+}
+
+function getProjectOpeningDate(project) {
+  return project.mainDate || "";
+}
+
+function sumProjectPoles(projects) {
+  return projects.reduce((sum, project) => sum + (Number(project.poles) || 0), 0);
 }
 
 function getProjectLetterSortDate(project) {
@@ -2354,6 +2394,52 @@ function openProjectEditor(id) {
 
 function closeProjectEditor() {
   closeModal("editProjectModal");
+}
+
+function openProjectDetails(id) {
+  const project = state.projects.find((item) => item.id === id);
+  if (!project) return;
+
+  const meta = getProjectMeta(project);
+  const details = [
+    ["Empresa", project.companyName],
+    ["Parceiro", project.partner],
+    ["Ordem de venda", project.order],
+    ["Carta", project.letter],
+    ["Município", project.city],
+    ["Tipo", typeBadge(project.type), true],
+    ["Parecer", project.opinion],
+    ["Status", statusBadge(project.status), true],
+    [getDateLabel(project.dateKind), formatDate(project.mainDate)],
+    ["Mês de referência", project.month],
+    ["Quantidade de postes", String(project.poles || 0)],
+    ["Valor do ponto", formatMoney(project.pointValue)],
+    ["Valor multiplicado", formatMoney(project.multipliedValue)],
+    ...(project.status === "Aguardando" ? [["Troca de postes", project.poleExchange ? "Sim" : "Não"]] : []),
+    ...(project.type === "Desocupação" && project.vacancyLetterDate
+      ? [["Data do envio da carta", formatDate(project.vacancyLetterDate)]]
+      : []),
+    ...(project.status === "Negado" && project.neDate ? [["Data transformado em NE", formatDate(project.neDate)]] : []),
+    ...(project.status === "Negado" && project.denialReason ? [["Motivo da negativa", project.denialReason]] : []),
+    ...(project.type === "Desocupação" && !project.vacancyLetterDate
+      ? [["Contagem de 90 dias", meta.countLabel]]
+      : []),
+  ];
+
+  $("#projectDetailsTitle").textContent = `Projeto ${project.order || ""}`.trim();
+  $("#projectDetailsGrid").innerHTML = details
+    .map(([label, value, isHtml]) => `
+      <div class="project-detail-item">
+        <span>${escapeHtml(label)}</span>
+        <strong>${isHtml ? value : escapeHtml(value || "-")}</strong>
+      </div>
+    `)
+    .join("");
+  openModal("projectDetailsModal");
+}
+
+function closeProjectDetails() {
+  closeModal("projectDetailsModal");
 }
 
 function toggleEditConditionalFields() {

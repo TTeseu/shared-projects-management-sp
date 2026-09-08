@@ -1983,6 +1983,15 @@ input[readonly] {
   background: rgba(33, 199, 168, 0.045);
 }
 
+.project-row {
+  cursor: pointer;
+}
+
+.project-row:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
+
 .table-actions {
   display: flex;
   align-items: center;
@@ -2129,6 +2138,51 @@ input[readonly] {
   margin-bottom: 18px;
 }
 
+.project-details-modal .modal-title-row {
+  align-items: flex-start;
+}
+
+.project-details-modal .eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--teal);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.project-details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.project-detail-item {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid rgba(52, 69, 84, 0.72);
+  border-radius: 8px;
+  background: rgba(8, 14, 20, 0.46);
+}
+
+.project-detail-item span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.project-detail-item strong {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #f4f7fa;
+  font-size: 14px;
+}
+
 .modal-actions {
   justify-content: flex-end;
   margin-top: 20px;
@@ -2191,6 +2245,12 @@ input[readonly] {
   }
 
   .import-guide-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .project-details-grid {
     grid-template-columns: 1fr;
   }
 }

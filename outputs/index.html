@@ -185,6 +185,14 @@
                 </div>
                 <i data-lucide="folder-kanban"></i>
               </article>
+              <article class="summary-card green">
+                <div>
+                  <span>Postes aprovados</span>
+                  <strong id="dashApprovedPoles">0</strong>
+                  <small>Ocupação e regularização</small>
+                </div>
+                <i data-lucide="utility-pole"></i>
+              </article>
               <article class="summary-card red">
                 <div>
                   <span>Projetos de desocupação</span>
@@ -192,6 +200,14 @@
                   <small>Controle de retirada</small>
                 </div>
                 <i data-lucide="circle-x"></i>
+              </article>
+              <article class="summary-card purple">
+                <div>
+                  <span>Postes em desocupação</span>
+                  <strong id="dashVacancyPoles">0</strong>
+                  <small>Quantidade de postes</small>
+                </div>
+                <i data-lucide="signpost"></i>
               </article>
               <article class="summary-card amber">
                 <div>
@@ -247,7 +263,7 @@
               <section class="table-card chart-card">
                 <div class="table-toolbar">
                   <div>
-                    <h2>Evolucao mensal</h2>
+                    <h2>OVs abertas por mês</h2>
                   </div>
                   <i data-lucide="more-vertical"></i>
                 </div>
@@ -1099,6 +1115,27 @@
             <button class="primary icon-text" type="submit"><i data-lucide="save"></i>Salvar alterações</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="projectDetailsModal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal large project-details-modal">
+        <div class="modal-title-row">
+          <div>
+            <span class="eyebrow">Visualização rápida</span>
+            <h2 id="projectDetailsTitle">Detalhes do projeto</h2>
+          </div>
+          <button class="icon-only ghost" id="closeProjectDetailsBtn" type="button" aria-label="Fechar">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="project-details-grid" id="projectDetailsGrid"></div>
+        <div class="modal-actions">
+          <button class="secondary icon-text" id="projectDetailsCloseBtn" type="button">
+            <i data-lucide="x"></i>
+            Fechar
+          </button>
+        </div>
       </div>
     </div>
 
