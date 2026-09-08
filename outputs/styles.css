@@ -928,14 +928,40 @@ p {
 }
 
 .monthly-chart {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(30px, 1fr));
-  align-items: end;
-  gap: 9px;
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
   min-height: 175px;
   padding: 8px 4px 0;
   overflow-x: auto;
   background-image: repeating-linear-gradient(to top, transparent 0 31px, rgba(156, 170, 184, 0.12) 32px);
+}
+
+.monthly-year-group {
+  display: grid;
+  flex: 1 0 min(100%, 440px);
+  grid-template-rows: auto 1fr;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.monthly-year-group + .monthly-year-group {
+  border-left: 1px solid rgba(52, 69, 84, 0.65);
+}
+
+.monthly-year-label {
+  color: var(--text);
+  font-size: 12px;
+  text-align: center;
+}
+
+.monthly-year-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(30px, 1fr));
+  align-items: end;
+  gap: 9px;
+  min-width: 0;
 }
 
 .month-column {

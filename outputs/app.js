@@ -1411,9 +1411,9 @@ function renderDashboard() {
   setText("#dashActiveBilling", formatMoney(sumProjectsBy(() => true, activeProjects)));
   setText("#dashVacancyExit", formatMoney(sumProjectsBy(() => true, vacancyProjects)));
   setText("#dashActiveCount", activeProjects.length);
-  setText("#dashApprovedPoles", approvedPoles);
+  setText("#dashApprovedPoles", formatInteger(approvedPoles));
   setText("#dashVacancyCount", vacancyProjects.length);
-  setText("#dashVacancyPoles", vacancyPoles);
+  setText("#dashVacancyPoles", formatInteger(vacancyPoles));
   setText("#dashWaitingCount", waitingProjects.length);
   setText("#dashCompletedCount", completedProjects.length);
   setText("#dashWaitingAlertCount", waitingAlerts.length);
@@ -1536,41 +1536,60 @@ function renderTypeBars(projectsSource) {
 function renderMonthlyChart(projectsSource) {
   const container = $("#dashMonthlyChart");
   if (!container) return;
-  const months = getDashboardMonths();
-  const counts = months.map((month) => ({
-    ...month,
-    count: projectsSource.filter((project) => {
-      const periodDate = getProjectOpeningDate(project);
-      if (!periodDate) return false;
-      if (month.key) return periodDate.slice(0, 7) === month.key;
-      return Number(periodDate.slice(5, 7)) === month.month;
-    }).length,
-  }));
+  const groups = getDashboardMonthGroups(projectsSource);
+  const counts = groups.flatMap((group) => group.months);
   const max = Math.max(...counts.map((item) => item.count), 1);
-  container.innerHTML = counts
+  container.innerHTML = groups
     .map(
-      (item) => `
-        <div class="month-column">
-          <strong>${item.count}</strong>
-          <span style="height:${Math.max(12, (item.count / max) * 116)}px"></span>
-          <small>${item.label}</small>
+      (group) => `
+        <div class="monthly-year-group">
+          <strong class="monthly-year-label">${escapeHtml(group.year)}</strong>
+          <div class="monthly-year-grid">
+            ${group.months
+              .map(
+                (item) => `
+                  <div class="month-column">
+                    <strong>${item.count}</strong>
+                    <span style="height:${Math.max(12, (item.count / max) * 116)}px"></span>
+                    <small>${escapeHtml(item.label)}</small>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
         </div>
       `
     )
     .join("");
 }
 
-function getDashboardMonths() {
+function getDashboardMonthGroups(projectsSource) {
   const formatter = new Intl.DateTimeFormat("pt-BR", { month: "short" });
-  return Array.from({ length: 12 }, (_, index) => {
-    const month = index + 1;
-    const date = new Date(Number(state.dashboardYear || new Date().getFullYear()), index, 1);
-    return {
-      key: state.dashboardYear ? `${state.dashboardYear}-${String(month).padStart(2, "0")}` : "",
-      month,
-      label: formatter.format(date).replace(".", ""),
-    };
-  });
+  const years = state.dashboardYear
+    ? [state.dashboardYear]
+    : Array.from(
+        new Set(
+          projectsSource
+            .map((project) => getProjectOpeningDate(project).slice(0, 4))
+            .filter(Boolean)
+        )
+      ).sort();
+  const visibleYears = years.length ? years : [state.dashboardYear || String(new Date().getFullYear())];
+
+  return visibleYears.map((year) => ({
+    year,
+    months: Array.from({ length: 12 }, (_, index) => {
+      const month = index + 1;
+      const key = `${year}-${String(month).padStart(2, "0")}`;
+      const date = new Date(Number(year), index, 1);
+      return {
+        key,
+        month,
+        label: formatter.format(date).replace(".", ""),
+        count: projectsSource.filter((project) => getProjectOpeningDate(project).slice(0, 7) === key).length,
+      };
+    }),
+  }));
 }
 
 function renderDashboardAlertTable(selector, projects, kind) {
@@ -1878,7 +1897,9 @@ function renderYearFilter() {
 function renderDashboardYearFilter() {
   const select = $("#dashboardYearFilter");
   if (!select) return;
-  const years = Array.from(new Set(["2025", "2026", ...state.projects.map(getProjectYear).filter(Boolean)])).sort();
+  const years = Array.from(
+    new Set(["2025", "2026", ...state.projects.map((project) => getProjectOpeningDate(project).slice(0, 4)).filter(Boolean)])
+  ).sort();
   const current = state.dashboardYear;
   select.innerHTML = `<option value="">Todos</option>${years.map((year) => `<option value="${year}">${year}</option>`).join("")}`;
   if (years.includes(current)) select.value = current;
@@ -2681,6 +2702,12 @@ function formatMoney(value) {
   return Number(value || 0).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
+  });
+}
+
+function formatInteger(value) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    maximumFractionDigits: 0,
   });
 }
 
