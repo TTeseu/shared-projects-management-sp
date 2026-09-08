@@ -1584,7 +1584,7 @@ function renderDashboardAlertTable(selector, projects, kind) {
     .map((project) => {
       const days = daysElapsed(project.mainDate);
       return `
-        <tr>
+        <tr class="project-row" data-view-project="${project.id}" tabindex="0">
           <td>${escapeHtml(project.companyName)}</td>
           <td>${escapeHtml(project.type)}</td>
           <td>${formatDate(project.mainDate)}</td>
@@ -1593,6 +1593,7 @@ function renderDashboardAlertTable(selector, projects, kind) {
       `;
     })
     .join("");
+  bindProjectPreviewRows(body);
 }
 
 function getLastSixMonths() {
