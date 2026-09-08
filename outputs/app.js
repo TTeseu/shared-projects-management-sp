@@ -1245,9 +1245,36 @@ function bindUtilityActions() {
 function bindDashboardControls() {
   $("#dashboardYearFilter")?.addEventListener("change", (event) => {
     state.dashboardYear = event.target.value;
+    renderDashboardYearFilter();
     renderDashboard();
     refreshIcons();
   });
+
+  const menuButton = $("#monthlyChartMenuBtn");
+  const menu = $("#monthlyChartMenu");
+  if (menuButton && menu) {
+    menuButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      menu.classList.toggle("hidden");
+      menuButton.setAttribute("aria-expanded", String(!menu.classList.contains("hidden")));
+    });
+    menu.addEventListener("click", (event) => {
+      const option = event.target.closest("[data-dashboard-year-option]");
+      if (!option) return;
+      state.dashboardYear = option.dataset.dashboardYearOption;
+      menu.classList.add("hidden");
+      menuButton.setAttribute("aria-expanded", "false");
+      renderDashboardYearFilter();
+      renderDashboard();
+      refreshIcons();
+    });
+    document.addEventListener("click", (event) => {
+      if (!menu.closest(".chart-menu")?.contains(event.target)) {
+        menu.classList.add("hidden");
+        menuButton.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
 }
 
 function bindChecklistControls() {
@@ -1904,6 +1931,24 @@ function renderDashboardYearFilter() {
   select.innerHTML = `<option value="">Todos</option>${years.map((year) => `<option value="${year}">${year}</option>`).join("")}`;
   if (years.includes(current)) select.value = current;
   else state.dashboardYear = "";
+  renderDashboardYearMenu(years);
+}
+
+function renderDashboardYearMenu(years) {
+  const menu = $("#monthlyChartMenu");
+  const button = $("#monthlyChartMenuBtn");
+  if (!menu || !button) return;
+  const options = ["", ...years];
+  menu.innerHTML = options
+    .map(
+      (year) => `
+        <button type="button" role="menuitemradio" aria-checked="${year === state.dashboardYear}" data-dashboard-year-option="${escapeAttr(year)}">
+          ${year || "Todos"}
+        </button>
+      `
+    )
+    .join("");
+  button.title = `Ano do gráfico: ${state.dashboardYear || "Todos"}`;
 }
 
 function renderProjectTable() {

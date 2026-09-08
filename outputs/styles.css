@@ -778,6 +778,60 @@ p {
   color: var(--muted);
 }
 
+.chart-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.chart-menu-button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+}
+
+.chart-menu-button:hover,
+.chart-menu-button:focus-visible {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chart-menu-panel {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  min-width: 120px;
+  padding: 5px;
+  border: 1px solid rgba(52, 69, 84, 0.92);
+  border-radius: 8px;
+  background: #111b24;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
+.chart-menu-panel button {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  background: transparent;
+}
+
+.chart-menu-panel button:hover,
+.chart-menu-panel button:focus-visible,
+.chart-menu-panel button[aria-checked="true"] {
+  color: var(--text);
+  background: rgba(33, 199, 168, 0.14);
+}
+
 .status-chart {
   display: grid;
   grid-template-columns: 190px 1fr;
@@ -928,18 +982,18 @@ p {
 }
 
 .monthly-chart {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
   align-items: stretch;
-  gap: 16px;
+  gap: 12px;
   min-height: 175px;
   padding: 8px 4px 0;
-  overflow-x: auto;
+  overflow-x: hidden;
   background-image: repeating-linear-gradient(to top, transparent 0 31px, rgba(156, 170, 184, 0.12) 32px);
 }
 
 .monthly-year-group {
   display: grid;
-  flex: 1 0 min(100%, 440px);
   grid-template-rows: auto 1fr;
   gap: 6px;
   min-width: 0;
@@ -958,9 +1012,9 @@ p {
 
 .monthly-year-grid {
   display: grid;
-  grid-template-columns: repeat(12, minmax(30px, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   align-items: end;
-  gap: 9px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -989,6 +1043,12 @@ p {
   color: var(--muted);
   font-size: 11px;
   text-transform: capitalize;
+}
+
+@media (max-width: 720px) {
+  .monthly-chart {
+    grid-template-columns: 1fr;
+  }
 }
 
 .quick-actions {

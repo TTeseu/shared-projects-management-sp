@@ -265,7 +265,12 @@
                   <div>
                     <h2>OVs abertas por mês</h2>
                   </div>
-                  <i data-lucide="more-vertical"></i>
+                  <div class="chart-menu">
+                    <button type="button" class="icon-button chart-menu-button" id="monthlyChartMenuBtn" aria-label="Selecionar ano do gráfico" aria-haspopup="true" aria-expanded="false">
+                      <i data-lucide="more-vertical"></i>
+                    </button>
+                    <div class="chart-menu-panel hidden" id="monthlyChartMenu" role="menu"></div>
+                  </div>
                 </div>
                 <div class="monthly-chart" id="dashMonthlyChart"></div>
               </section>
