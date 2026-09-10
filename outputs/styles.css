@@ -770,6 +770,25 @@ p {
   min-height: 244px;
 }
 
+.annual-charts {
+  display: grid;
+  gap: 18px;
+}
+
+.annual-chart-group {
+  min-width: 0;
+  min-height: 205px;
+}
+
+.annual-chart-group + .annual-chart-group {
+  border-top: 1px solid rgba(52, 69, 84, 0.65);
+  padding-top: 16px;
+}
+
+.annual-chart-group h3 {
+  margin: 0 0 14px;
+}
+
 .chart-card .table-toolbar {
   margin-bottom: 10px;
 }
@@ -861,17 +880,20 @@ p {
 
 .donut-chart strong,
 .donut-chart span {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1;
 }
 
 .donut-chart strong {
-  font-size: 30px;
+  top: calc(50% - 9px);
+  font-size: 22px;
   line-height: 1;
 }
 
 .donut-chart span {
-  margin-top: 32px;
+  top: calc(50% + 16px);
   color: var(--muted);
   font-size: 13px;
 }
@@ -997,6 +1019,7 @@ p {
   grid-template-rows: auto 1fr;
   gap: 6px;
   min-width: 0;
+  min-height: 205px;
   padding: 0 8px;
 }
 
@@ -2228,45 +2251,8 @@ input[readonly] {
   align-items: flex-start;
 }
 
-.project-details-modal .eyebrow {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--teal);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.project-details-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.project-detail-item {
-  min-width: 0;
-  padding: 13px 14px;
-  border: 1px solid rgba(52, 69, 84, 0.72);
-  border-radius: 8px;
-  background: rgba(8, 14, 20, 0.46);
-}
-
-.project-detail-item span {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.project-detail-item strong {
-  display: block;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: #f4f7fa;
-  font-size: 14px;
+.project-details-form input[readonly] {
+  color: var(--text);
 }
 
 .modal-actions {

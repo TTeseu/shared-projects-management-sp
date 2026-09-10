@@ -1250,9 +1250,8 @@ function bindDashboardControls() {
     refreshIcons();
   });
 
-  const menuButton = $("#monthlyChartMenuBtn");
-  const menu = $("#monthlyChartMenu");
-  if (menuButton && menu) {
+  $$("[data-year-menu-button]").forEach((menuButton) => {
+    const menu = $("[data-year-menu]", menuButton.closest(".chart-menu"));
     menuButton.addEventListener("click", (event) => {
       event.stopPropagation();
       menu.classList.toggle("hidden");
@@ -1274,7 +1273,14 @@ function bindDashboardControls() {
         menuButton.setAttribute("aria-expanded", "false");
       }
     });
-  }
+    menuButton.closest(".chart-menu").addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        menu.classList.add("hidden");
+        menuButton.setAttribute("aria-expanded", "false");
+        menuButton.focus();
+      }
+    });
+  });
 }
 
 function bindChecklistControls() {
@@ -1445,7 +1451,6 @@ function renderDashboard() {
   setText("#dashCompletedCount", completedProjects.length);
   setText("#dashWaitingAlertCount", waitingAlerts.length);
   setText("#dashVacancyAlertCount", vacancyAlerts.length);
-  setText("#dashTotalProjects", dashboardProjects.length);
 
   renderDashboardCharts({ dashboardProjects, activeProjects, vacancyProjects, waitingProjects, deniedProjects });
   renderDashboardAlertTable("#dashWaitingAlertsTable", waitingAlerts, "waiting");
@@ -1480,7 +1485,33 @@ function getDashboardProjects() {
     : state.projects;
 }
 
-function renderDashboardCharts({ dashboardProjects, activeProjects, vacancyProjects, waitingProjects, deniedProjects }) {
+function renderDashboardCharts({ dashboardProjects }) {
+  const groups = getDashboardYearGroups(dashboardProjects);
+  $("#dashStatusCharts").innerHTML = groups.map(({ year }) => `
+    <section class="annual-chart-group" data-chart-year="${escapeAttr(year)}">
+      <h3 class="monthly-year-label">${escapeHtml(year)}</h3>
+      <div class="status-chart">
+        <div class="donut-chart"><strong></strong><span>Total</span></div>
+        <div class="chart-legend"></div>
+      </div>
+    </section>`).join("");
+  $("#dashTypeCharts").innerHTML = groups.map(({ year }) => `
+    <section class="annual-chart-group" data-chart-year="${escapeAttr(year)}">
+      <h3 class="monthly-year-label">${escapeHtml(year)}</h3>
+      <div class="type-bars"></div>
+    </section>`).join("");
+  groups.forEach(({ projects }, index) => {
+    renderStatusDonut(getStatusSegments(projects), projects.length, $("#dashStatusCharts").children[index]);
+    renderTypeBars(projects, $(".type-bars", $("#dashTypeCharts").children[index]));
+  });
+  renderMonthlyChart(dashboardProjects);
+}
+
+function getStatusSegments(projects) {
+  const activeProjects = projects.filter((project) => getProjectSection(project) === "occupation");
+  const vacancyProjects = projects.filter((project) => getProjectSection(project) === "vacancy");
+  const waitingProjects = projects.filter((project) => getProjectSection(project) === "waiting");
+  const deniedProjects = projects.filter((project) => getProjectSection(project) === "denied");
   const statusSegments = [
     {
       label: "Ocupação de postes novos",
@@ -1498,15 +1529,14 @@ function renderDashboardCharts({ dashboardProjects, activeProjects, vacancyProje
     { label: "Aguardando", value: waitingProjects.length, tone: "amber", color: "#F59E0B" },
     { label: "Negado", value: deniedProjects.length, tone: "black", color: "#05080C" },
   ];
-  renderStatusDonut(statusSegments, dashboardProjects.length);
-  renderTypeBars(dashboardProjects);
-  renderMonthlyChart(dashboardProjects);
+  return statusSegments;
 }
 
-function renderStatusDonut(segments, total) {
-  const donut = $("#dashStatusDonut");
-  const legend = $("#dashStatusLegend");
+function renderStatusDonut(segments, total, root) {
+  const donut = $(".donut-chart", root);
+  const legend = $(".chart-legend", root);
   if (!donut || !legend) return;
+  $("strong", donut).textContent = formatInteger(total);
   let start = 0;
   const gradient = total
     ? segments
@@ -1533,8 +1563,7 @@ function renderStatusDonut(segments, total) {
     .join("");
 }
 
-function renderTypeBars(projectsSource) {
-  const container = $("#dashTypeBars");
+function renderTypeBars(projectsSource, container) {
   if (!container) return;
   const rows = TYPES.map((type) => {
     const projects = projectsSource.filter((project) => project.type === type);
@@ -1590,8 +1619,7 @@ function renderMonthlyChart(projectsSource) {
     .join("");
 }
 
-function getDashboardMonthGroups(projectsSource) {
-  const formatter = new Intl.DateTimeFormat("pt-BR", { month: "short" });
+function getDashboardYearGroups(projectsSource) {
   const years = state.dashboardYear
     ? [state.dashboardYear]
     : Array.from(
@@ -1605,6 +1633,14 @@ function getDashboardMonthGroups(projectsSource) {
 
   return visibleYears.map((year) => ({
     year,
+    projects: projectsSource.filter((project) => getProjectOpeningDate(project).slice(0, 4) === year),
+  }));
+}
+
+function getDashboardMonthGroups(projectsSource) {
+  const formatter = new Intl.DateTimeFormat("pt-BR", { month: "short" });
+  return getDashboardYearGroups(projectsSource).map(({ year, projects }) => ({
+    year,
     months: Array.from({ length: 12 }, (_, index) => {
       const month = index + 1;
       const key = `${year}-${String(month).padStart(2, "0")}`;
@@ -1613,7 +1649,7 @@ function getDashboardMonthGroups(projectsSource) {
         key,
         month,
         label: formatter.format(date).replace(".", ""),
-        count: projectsSource.filter((project) => getProjectOpeningDate(project).slice(0, 7) === key).length,
+        count: projects.filter((project) => getProjectOpeningDate(project).slice(0, 7) === key).length,
       };
     }),
   }));
@@ -1883,9 +1919,9 @@ function renderSummaryCards() {
     ["Saída por desocupação", formatMoney(values.vacancyExit), "Valor que sairá do faturamento", "purple", "log-out"],
     ["Valor aguardando", formatMoney(values.waiting), "Projetos com prazo em aberto", "amber", "clock-3"],
     ["Valor negado", formatMoney(values.denied), "Projetos negados", "black", "ban"],
-    ["Postes aprovados", values.approvedPoles, "Ocupação e regularização", "green", "utility-pole"],
-    ["Postes em desocupação", values.vacancyPoles, "Quantidade de postes", "purple", "signpost"],
-    ["Total de projetos", totals.all, `${totals.alerts} alerta(s) ativo(s)`, "teal", "folder-kanban"],
+    ["Postes aprovados", formatInteger(values.approvedPoles), "Ocupação e regularização", "green", "utility-pole"],
+    ["Postes em desocupação", formatInteger(values.vacancyPoles), "Quantidade de postes", "purple", "signpost"],
+    ["Total de projetos", formatInteger(totals.all), `${totals.alerts} alerta(s) ativo(s)`, "teal", "folder-kanban"],
   ]
     .map(
       ([label, value, helper, tone, icon]) => `
@@ -1935,20 +1971,20 @@ function renderDashboardYearFilter() {
 }
 
 function renderDashboardYearMenu(years) {
-  const menu = $("#monthlyChartMenu");
-  const button = $("#monthlyChartMenuBtn");
-  if (!menu || !button) return;
-  const options = ["", ...years];
-  menu.innerHTML = options
-    .map(
-      (year) => `
-        <button type="button" role="menuitemradio" aria-checked="${year === state.dashboardYear}" data-dashboard-year-option="${escapeAttr(year)}">
-          ${year || "Todos"}
-        </button>
-      `
-    )
-    .join("");
-  button.title = `Ano do gráfico: ${state.dashboardYear || "Todos"}`;
+  $$("[data-year-menu]").forEach((menu) => {
+    const button = $("[data-year-menu-button]", menu.closest(".chart-menu"));
+    const options = ["", ...years];
+    menu.innerHTML = options
+      .map(
+        (year) => `
+          <button type="button" role="menuitemradio" aria-checked="${year === state.dashboardYear}" data-dashboard-year-option="${escapeAttr(year)}">
+            ${year || "Todos"}
+          </button>
+        `
+      )
+      .join("");
+    button.title = `Ano do gráfico: ${state.dashboardYear || "Todos"}`;
+  });
 }
 
 function renderProjectTable() {
@@ -2469,25 +2505,24 @@ function openProjectDetails(id) {
 
   const meta = getProjectMeta(project);
   const details = [
-    ["Empresa", project.companyName],
-    ["Parceiro", project.partner],
+    ["Empresa", project.companyName, 5],
+    ["Parceiro", project.partner, 3],
+    ["Valor do ponto", formatMoney(project.pointValue), 4],
     ["Ordem de venda", project.order],
     ["Carta", project.letter],
     ["Município", project.city],
-    ["Tipo", typeBadge(project.type), true],
+    ["Tipo", project.type],
     ["Parecer", project.opinion],
-    ["Status", statusBadge(project.status), true],
-    [getDateLabel(project.dateKind), formatDate(project.mainDate)],
+    ["Status", project.status],
+    ...(project.status === "Aguardando" ? [["Troca de postes?", project.poleExchange ? "Sim" : "Não"]] : []),
+    [getDateLabel(resolveDateKind(project.type, project.status)), formatDate(project.mainDate)],
     ["Mês de referência", project.month],
-    ["Quantidade de postes", String(project.poles || 0)],
-    ["Valor do ponto", formatMoney(project.pointValue)],
+    ["Quantidade de postes", formatInteger(project.poles)],
     ["Valor multiplicado", formatMoney(project.multipliedValue)],
-    ...(project.status === "Aguardando" ? [["Troca de postes", project.poleExchange ? "Sim" : "Não"]] : []),
-    ...(project.type === "Desocupação" && project.vacancyLetterDate
-      ? [["Data do envio da carta", formatDate(project.vacancyLetterDate)]]
+    ...(project.type === "Desocupação" && project.status === "Concluído"
+      ? [["Data do envio da carta", formatDate(project.vacancyLetterDate), 6]]
       : []),
-    ...(project.status === "Negado" && project.neDate ? [["Data transformado em NE", formatDate(project.neDate)]] : []),
-    ...(project.status === "Negado" && project.denialReason ? [["Motivo da negativa", project.denialReason]] : []),
+    ...(project.status === "Negado" ? [["Observação/Motivo da negativa", project.denialReason, 6], ["Data transformado em NE", formatDate(project.neDate), 6]] : []),
     ...(project.type === "Desocupação" && !project.vacancyLetterDate
       ? [["Contagem de 90 dias", meta.countLabel]]
       : []),
@@ -2495,10 +2530,10 @@ function openProjectDetails(id) {
 
   $("#projectDetailsTitle").textContent = `Projeto ${project.order || ""}`.trim();
   $("#projectDetailsGrid").innerHTML = details
-    .map(([label, value, isHtml]) => `
-      <div class="project-detail-item">
-        <span>${escapeHtml(label)}</span>
-        <strong>${isHtml ? value : escapeHtml(value || "-")}</strong>
+    .map(([label, value, span = 3], index) => `
+      <div class="field span-${span}">
+        <label for="projectDetail${index}">${escapeHtml(label)}</label>
+        <input id="projectDetail${index}" value="${escapeAttr(value || "-")}" title="${escapeAttr(value || "-")}" readonly />
       </div>
     `)
     .join("");

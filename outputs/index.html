@@ -233,15 +233,14 @@
                   <div>
                     <h2>Projetos por status</h2>
                   </div>
-                  <i data-lucide="more-vertical"></i>
-                </div>
-                <div class="status-chart">
-                  <div class="donut-chart" id="dashStatusDonut">
-                    <strong id="dashTotalProjects">0</strong>
-                    <span>Total</span>
+                  <div class="chart-menu">
+                    <button type="button" class="icon-button chart-menu-button" data-year-menu-button aria-label="Selecionar ano dos projetos por status" aria-haspopup="menu" aria-expanded="false" title="Selecionar ano">
+                      <i data-lucide="more-vertical"></i>
+                    </button>
+                    <div class="chart-menu-panel hidden" data-year-menu role="menu"></div>
                   </div>
-                  <div class="chart-legend" id="dashStatusLegend"></div>
                 </div>
+                <div class="annual-charts" id="dashStatusCharts"></div>
               </section>
 
               <section class="table-card chart-card">
@@ -249,9 +248,14 @@
                   <div>
                     <h2>Projetos por tipo</h2>
                   </div>
-                  <i data-lucide="more-vertical"></i>
+                  <div class="chart-menu">
+                    <button type="button" class="icon-button chart-menu-button" data-year-menu-button aria-label="Selecionar ano dos projetos por tipo" aria-haspopup="menu" aria-expanded="false" title="Selecionar ano">
+                      <i data-lucide="more-vertical"></i>
+                    </button>
+                    <div class="chart-menu-panel hidden" data-year-menu role="menu"></div>
+                  </div>
                 </div>
-                <div class="type-bars" id="dashTypeBars"></div>
+                <div class="annual-charts" id="dashTypeCharts"></div>
                 <div class="chart-legend horizontal">
                   <span><b class="dot green"></b>Ativos</span>
                   <span><b class="dot amber"></b>Aguardando</span>
@@ -266,10 +270,10 @@
                     <h2>OVs abertas por mês</h2>
                   </div>
                   <div class="chart-menu">
-                    <button type="button" class="icon-button chart-menu-button" id="monthlyChartMenuBtn" aria-label="Selecionar ano do gráfico" aria-haspopup="true" aria-expanded="false">
+                    <button type="button" class="icon-button chart-menu-button" id="monthlyChartMenuBtn" data-year-menu-button aria-label="Selecionar ano do gráfico" aria-haspopup="menu" aria-expanded="false">
                       <i data-lucide="more-vertical"></i>
                     </button>
-                    <div class="chart-menu-panel hidden" id="monthlyChartMenu" role="menu"></div>
+                    <div class="chart-menu-panel hidden" id="monthlyChartMenu" data-year-menu role="menu"></div>
                   </div>
                 </div>
                 <div class="monthly-chart" id="dashMonthlyChart"></div>
@@ -1127,14 +1131,13 @@
       <div class="modal large project-details-modal">
         <div class="modal-title-row">
           <div>
-            <span class="eyebrow">Visualização rápida</span>
             <h2 id="projectDetailsTitle">Detalhes do projeto</h2>
           </div>
           <button class="icon-only ghost" id="closeProjectDetailsBtn" type="button" aria-label="Fechar">
             <i data-lucide="x"></i>
           </button>
         </div>
-        <div class="project-details-grid" id="projectDetailsGrid"></div>
+        <div class="form-grid premium-form project-details-form" id="projectDetailsGrid"></div>
         <div class="modal-actions">
           <button class="secondary icon-text" id="projectDetailsCloseBtn" type="button">
             <i data-lucide="x"></i>
