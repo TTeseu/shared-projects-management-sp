@@ -29,7 +29,8 @@ const MUNICIPALITIES = [
   "BIRITIBA MIRIM",
 ];
 
-const TYPES = ["Ocupação de postes novos", "Regularização", "Desocupação"];
+const LENS_TYPE = "Caixa lente";
+const TYPES = ["Ocupação de postes novos", "Regularização", "Desocupação", LENS_TYPE];
 const OPINIONS = ["ISR", "DSR"];
 const STATUSES = ["Concluído", "Negado", "Aguardando"];
 const MONTHS = [
@@ -91,6 +92,10 @@ const remoteSync = {
 };
 
 const sectionCopy = {
+  lens: {
+    title: "Caixa lente",
+    subtitle: "Caixas lente por data de aprovação.",
+  },
   occupation: {
     title: "Ocupação/Regularização",
     subtitle: "Projetos concluídos de ocupação e regularização.",
@@ -432,9 +437,9 @@ function populateSelects() {
   cityTargets.forEach((selector) => fillSelect($(selector), MUNICIPALITIES, selector.includes("filter") ? "Todos" : "Selecione"));
 
   ["#singleType", "#batchType", "#editType"].forEach((selector) =>
-    fillSelect($(selector), TYPES, selector.includes("filter") ? "Todos" : "Selecione")
+    fillSelect($(selector), selector === "#editType" ? TYPES : TYPES.filter((type) => type !== LENS_TYPE), "Selecione")
   );
-  fillSelect($("#filterType"), ["Ocupação de postes novos", "Regularização"], "Todos");
+  fillSelect($("#filterType"), TYPES, "Todos");
   ["#singleOpinion", "#batchOpinion", "#editOpinion", "#filterOpinion"].forEach((selector) =>
     fillSelect($(selector), OPINIONS, selector.includes("filter") ? "Todos" : "Selecione")
   );
@@ -635,6 +640,14 @@ function bindProjectForms() {
   setupCompanyAutocomplete("batch");
   setupCompanyAutocomplete("edit");
 
+  ["single", "batch"].forEach((prefix) => {
+    $(`#${prefix}Category`).addEventListener("change", () => {
+      toggleLensFields(prefix);
+      if (prefix === "batch") updateBatchCalculatedValues();
+      else updateCalculatedValue(prefix);
+    });
+  });
+
   ["#singleType", "#singleStatus"].forEach((selector) =>
     $(selector).addEventListener("change", () => {
       updateMainDateLabel("single");
@@ -677,6 +690,7 @@ function bindProjectForms() {
       togglePoleExchangeField("single");
       updateCalculatedValue("single");
       setDefaultCadastroOpinions();
+      toggleLensFields("single");
     }, 0);
   });
 
@@ -754,7 +768,7 @@ function renderCompanyAutocomplete(prefix) {
       (company) => `
         <button type="button" class="company-option" data-company-id="${company.id}">
           <span>${escapeHtml(company.name)}</span>
-          <small>${escapeHtml(company.partner)} | ${formatMoney(company.pointValue)}</small>
+          <small>${escapeHtml(company.partner)}${isLensForm(prefix) ? "" : ` | ${formatMoney(company.pointValue)}`}</small>
         </button>
       `
     )
@@ -844,7 +858,7 @@ function hideProjectCompanyFilterAutocomplete() {
 }
 
 function updateMainDateLabel(prefix) {
-  const type = $(`#${prefix}Type`)?.value;
+  const type = isLensForm(prefix) ? LENS_TYPE : $(`#${prefix}Type`)?.value;
   const status = $(`#${prefix}Status`)?.value;
   const label = $(`#${prefix}MainDateLabel`);
   if (!label) return;
@@ -854,28 +868,68 @@ function updateMainDateLabel(prefix) {
 function toggleReasonField(prefix) {
   const status = $(`#${prefix}Status`)?.value;
   const field = $(`#${prefix}ReasonField`);
-  if (field) field.classList.toggle("hidden", status !== "Negado");
+  if (field) field.classList.toggle("hidden", isLensForm(prefix) || status !== "Negado");
 }
 
 function togglePoleExchangeField(prefix) {
   const status = $(`#${prefix}Status`)?.value;
   const field = $(`#${prefix}PoleExchangeField`);
   const select = $(`#${prefix}PoleExchange`);
-  const visible = status === "Aguardando";
+  const visible = !isLensForm(prefix) && status === "Aguardando";
   if (field) field.classList.toggle("hidden", !visible);
   if (select && !visible) select.value = "Não";
 }
 
 function resolveDateKind(type, status) {
+  if (type === LENS_TYPE) return "approval";
   if (status === "Aguardando" || status === "Negado") return "notification";
   if (type === "Desocupação") return "request";
   return "letter";
 }
 
 function getDateLabel(kind) {
+  if (kind === "approval") return "Data de aprovação";
   if (kind === "notification") return "Data do envio da notificação";
   if (kind === "request") return "Data de solicitação";
   return "Data do envio da carta";
+}
+
+function isLensForm(prefix) {
+  return prefix === "edit" ? $("#editType")?.value === LENS_TYPE : $(`#${prefix}Category`)?.value === "lens";
+}
+
+function toggleLensFields(prefix) {
+  const lens = isLensForm(prefix);
+  ["PointValue", "Letter", "Type", "Status", "Opinion", "Multiplied"].forEach((name) => {
+    const input = $(`#${prefix}${name}`);
+    if (!input) return;
+    input.disabled = lens;
+    const field = input.closest(".field, .finance-card");
+    field?.classList.toggle("hidden", lens);
+  });
+  const poles = $(`#${prefix}Poles`);
+  if (poles) {
+    poles.readOnly = lens;
+    if (lens) poles.value = "1";
+  }
+  if (prefix === "batch") {
+    $$(".batch-letter-col, .batch-value-col").forEach((cell) => cell.classList.toggle("hidden", lens));
+    $$("#batchRowsBody tr").forEach((row) => {
+      $(".batch-letter", row).disabled = lens;
+      $(".batch-poles", row).readOnly = lens;
+      if (lens) $(".batch-poles", row).value = "1";
+    });
+  }
+  if (prefix === "single") $("#single-register .help-rail")?.classList.toggle("hidden", lens);
+  updateMainDateLabel(prefix);
+  toggleReasonField(prefix);
+  togglePoleExchangeField(prefix);
+}
+
+function applyLensRules(project) {
+  if (project.type !== LENS_TYPE) return project;
+  return { ...project, pointValue: 0, multipliedValue: 0, letter: "", opinion: "", status: "", poles: 1,
+    dateKind: "approval", poleExchange: false, denialReason: "", neDate: "", vacancyLetterDate: "" };
 }
 
 function submitSingleProject(event) {
@@ -897,18 +951,19 @@ function submitSingleProject(event) {
     setDefaultCadastroOpinions();
     renderAll();
     activateTab("project-query");
+    if (project.type === LENS_TYPE) setQuerySection("lens");
     showToast("Projeto salvo e enviado para consulta.", "success");
   });
 }
 
 function collectProjectFromPrefix(prefix) {
   const company = findCompanyByName($(`#${prefix}Company`).value);
-  const type = $(`#${prefix}Type`).value;
+  const type = isLensForm(prefix) ? LENS_TYPE : $(`#${prefix}Type`).value;
   const status = $(`#${prefix}Status`).value;
   const poles = Number($(`#${prefix}Poles`).value);
   const dateKind = resolveDateKind(type, status);
 
-  return {
+  return applyLensRules({
     id: uid("project"),
     companyId: company?.id || "",
     companyName: company?.name || $(`#${prefix}Company`).value.trim(),
@@ -931,7 +986,7 @@ function collectProjectFromPrefix(prefix) {
     vacancyLetterDate: "",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  };
+  });
 }
 
 function submitBatchProjects(event) {
@@ -939,10 +994,10 @@ function submitBatchProjects(event) {
   const company = findCompanyByName($("#batchCompany").value);
   const shared = {
     company,
-    type: $("#batchType").value,
+    type: isLensForm("batch") ? LENS_TYPE : $("#batchType").value,
     opinion: $("#batchOpinion").value,
     status: $("#batchStatus").value,
-    dateKind: resolveDateKind($("#batchType").value, $("#batchStatus").value),
+    dateKind: resolveDateKind(isLensForm("batch") ? LENS_TYPE : $("#batchType").value, $("#batchStatus").value),
     mainDate: $("#batchMainDate").value,
     month: $("#batchMonth").value,
     sameCity: $("#sameCityToggle").checked,
@@ -957,7 +1012,7 @@ function submitBatchProjects(event) {
     showToast("Selecione uma empresa cadastrada para o lote.", "error");
     return;
   }
-  if (!shared.type || !shared.opinion || !shared.status || !shared.mainDate || !shared.month) {
+  if (!shared.type || (shared.type !== LENS_TYPE && (!shared.opinion || !shared.status)) || !shared.mainDate || !shared.month) {
     showToast("Preencha todos os campos comuns do lote.", "error");
     return;
   }
@@ -970,7 +1025,7 @@ function submitBatchProjects(event) {
     return;
   }
 
-  const projects = rows.map((row) => ({
+  const projects = rows.map((row) => applyLensRules({
     id: uid("project"),
     companyId: company.id,
     companyName: company.name,
@@ -1013,8 +1068,10 @@ function submitBatchProjects(event) {
     toggleReasonField("batch");
     togglePoleExchangeField("batch");
     setDefaultCadastroOpinions();
+    toggleLensFields("batch");
     renderAll();
     activateTab("project-query");
+    if (shared.type === LENS_TYPE) setQuerySection("lens");
     showToast(`${projects.length} projeto(s) salvo(s) e enviados para consulta.`, "success");
   });
 }
@@ -1025,10 +1082,10 @@ function addBatchRow(data = {}) {
   tr.dataset.rowId = String(state.batchRowId);
   tr.innerHTML = `
     <td><input class="batch-order" inputmode="numeric" pattern="[0-9]*" value="${escapeAttr(data.order || "")}" required /></td>
-    <td><input class="batch-letter" value="${escapeAttr(data.letter || "")}" required /></td>
+    <td class="batch-letter-col"><input class="batch-letter" value="${escapeAttr(data.letter || "")}" required /></td>
     <td><input class="batch-poles" type="number" min="1" step="1" value="${escapeAttr(data.poles || "")}" required /></td>
     <td class="batch-city-col"><select class="batch-city"></select></td>
-    <td><input class="batch-total" readonly /></td>
+    <td class="batch-value-col"><input class="batch-total" readonly /></td>
     <td>
       <div class="table-actions">
         <button class="ghost icon-only remove-batch-row" type="button" aria-label="Remover linha"><i data-lucide="trash-2"></i></button>
@@ -1048,11 +1105,13 @@ function addBatchRow(data = {}) {
     updateBatchCalculatedValues();
   });
   updateBatchCityMode();
+  toggleLensFields("batch");
   updateBatchCalculatedValues();
   refreshIcons();
 }
 
 function handleBatchPaste(event) {
+  if (event.target.readOnly) return;
   const text = event.clipboardData?.getData("text") || "";
   if (!text.includes("\t") && !/[\r\n]/.test(text)) return;
   event.preventDefault();
@@ -1070,7 +1129,7 @@ function handleBatchPaste(event) {
   if (startRowIndex < 0) startRowIndex = 0;
 
   const sameCity = $("#sameCityToggle").checked;
-  const columns = sameCity ? ["order", "letter", "poles"] : ["order", "letter", "poles", "city"];
+  const columns = isLensForm("batch") ? (sameCity ? ["order"] : ["order", "city"]) : sameCity ? ["order", "letter", "poles"] : ["order", "letter", "poles", "city"];
   const classToColumn = {
     "batch-order": "order",
     "batch-letter": "letter",
@@ -1094,6 +1153,7 @@ function handleBatchPaste(event) {
 }
 
 function setBatchCellValue(tr, column, rawValue) {
+  if (isLensForm("batch") && (column === "letter" || column === "poles")) return;
   const value = String(rawValue || "").trim();
   if (column === "order") {
     $(".batch-order", tr).value = value.replace(/\D/g, "");
@@ -1125,7 +1185,7 @@ function updateBatchCalculatedValues() {
   const company = findCompanyByName($("#batchCompany").value);
   $$("#batchRowsBody tr").forEach((tr) => {
     const poles = Number($(".batch-poles", tr).value);
-    $(".batch-total", tr).value = company && poles > 0 ? formatMoney(calculateMultiplied(company.pointValue, poles)) : "";
+    $(".batch-total", tr).value = !isLensForm("batch") && company && poles > 0 ? formatMoney(calculateMultiplied(company.pointValue, poles)) : "";
   });
 }
 
@@ -1134,7 +1194,7 @@ function updateCalculatedValue(prefix) {
   const poles = Number($(`#${prefix}Poles`)?.value || 0);
   const target = $(`#${prefix}Multiplied`);
   const display = $(`#${prefix}MultipliedDisplay`);
-  const value = company && poles > 0 ? formatMoney(calculateMultiplied(company.pointValue, poles)) : "";
+  const value = !isLensForm(prefix) && company && poles > 0 ? formatMoney(calculateMultiplied(company.pointValue, poles)) : "";
   if (target) {
     target.value = value;
   }
@@ -1144,20 +1204,22 @@ function updateCalculatedValue(prefix) {
 }
 
 function validateProject(project, companyLookup = findCompanyByName) {
+  const lens = project.type === LENS_TYPE;
   const errors = [];
   if (!project.companyName || !companyLookup(project.companyName)) errors.push("Selecione uma empresa cadastrada.");
   if (!project.partner) errors.push("Parceiro é obrigatório.");
-  if (!Number.isFinite(project.pointValue) || project.pointValue <= 0) errors.push("Valor do ponto inválido.");
+  if (!lens && (!Number.isFinite(project.pointValue) || project.pointValue <= 0)) errors.push("Valor do ponto inválido.");
   if (!project.order) errors.push("Ordem de venda é obrigatória.");
   if (project.order && !/^\d+$/.test(project.order)) errors.push("Ordem de venda deve conter somente números.");
-  if (!project.letter) errors.push("Carta é obrigatória.");
+  if (!lens && !project.letter) errors.push("Carta é obrigatória.");
   if (!MUNICIPALITIES.includes(project.city)) errors.push("Selecione um município da lista oficial.");
   if (!TYPES.includes(project.type)) errors.push("Selecione um tipo válido.");
-  if (!OPINIONS.includes(project.opinion)) errors.push("Selecione ISR ou DSR no parecer.");
-  if (!STATUSES.includes(project.status)) errors.push("Selecione um status válido.");
+  if (!lens && !OPINIONS.includes(project.opinion)) errors.push("Selecione ISR ou DSR no parecer.");
+  if (!lens && !STATUSES.includes(project.status)) errors.push("Selecione um status válido.");
   if (!project.mainDate) errors.push(`${getDateLabel(project.dateKind)} é obrigatória.`);
   if (!MONTHS.includes(project.month)) errors.push("Selecione um mês de referência válido.");
   if (!Number.isInteger(project.poles) || project.poles <= 0) errors.push("Quantidade de postes deve ser um número inteiro maior que zero.");
+  if (lens && project.poles !== 1) errors.push("Caixa lente deve ter exatamente um poste.");
   if (project.status === "Negado" && !DENIAL_REASONS.includes(project.denialReason)) {
     errors.push("Informe o motivo da negativa.");
   }
@@ -1465,10 +1527,10 @@ function renderDashboard() {
               <tr class="project-row" data-view-project="${project.id}" tabindex="0">
                 <td>${escapeHtml(project.companyName)}</td>
                 <td>${typeBadge(project.type)}</td>
-                <td>${statusBadge(project.status)}</td>
+                <td>${project.type === LENS_TYPE ? "-" : statusBadge(project.status)}</td>
                 <td>${escapeHtml(project.city)}</td>
                 <td>${formatDate(project.mainDate)}</td>
-                <td>${formatMoney(project.multipliedValue)}</td>
+                <td>${project.type === LENS_TYPE ? "-" : formatMoney(project.multipliedValue)}</td>
                 <td><i data-lucide="more-vertical"></i></td>
               </tr>
             `
@@ -1528,6 +1590,7 @@ function getStatusSegments(projects) {
     { label: "Desocupação", value: vacancyProjects.length, tone: "purple", color: "#7C5CFF" },
     { label: "Aguardando", value: waitingProjects.length, tone: "amber", color: "#F59E0B" },
     { label: "Negado", value: deniedProjects.length, tone: "black", color: "#05080C" },
+    { label: LENS_TYPE, value: projects.filter((project) => getProjectSection(project) === "lens").length, tone: "teal", color: "#21C7A8" },
   ];
   return statusSegments;
 }
@@ -1569,7 +1632,7 @@ function renderTypeBars(projectsSource, container) {
     const projects = projectsSource.filter((project) => project.type === type);
     const total = Math.max(projects.length, 1);
     const segments = [
-      { tone: "green", value: projects.filter((project) => getProjectSection(project) === "occupation").length },
+      { tone: "green", value: projects.filter((project) => ["occupation", "lens"].includes(getProjectSection(project))).length },
       { tone: "amber", value: projects.filter((project) => getProjectSection(project) === "waiting").length },
       { tone: "blue", value: projects.filter((project) => getProjectSection(project) === "vacancy").length },
       { tone: "black", value: projects.filter((project) => getProjectSection(project) === "denied").length },
@@ -1889,6 +1952,7 @@ function renderSummaryCards() {
     all: filteredProjects.length,
     occupation: filteredProjects.filter((project) => getProjectSection(project) === "occupation").length,
     vacancy: filteredProjects.filter((project) => getProjectSection(project) === "vacancy").length,
+    lens: filteredProjects.filter((project) => getProjectSection(project) === "lens").length,
     waiting: filteredProjects.filter((project) => getProjectSection(project) === "waiting").length,
     denied: filteredProjects.filter((project) => getProjectSection(project) === "denied").length,
     alerts: filteredProjects.filter((project) => getProjectMeta(project).hasAlert).length,
@@ -2006,6 +2070,7 @@ function renderProjectTable() {
 
 function renderProjectHead(options = {}) {
   const columns = {
+    lens: ["Empresa", "Parceiro", "Ordem", "Município", "Data de aprovação", "Mês", "Postes", "Ações"],
     occupation: [
       "Empresa",
       "Parceiro",
@@ -2077,6 +2142,7 @@ function getProjectColumnKey(column) {
     Parecer: "opinion",
     Status: "status",
     "Data do envio da carta": "date",
+    "Data de aprovação": "date",
     "Data de solicitação": "date",
     "Data do envio da notificação": "date",
     "Data de notificação": "date",
@@ -2169,6 +2235,20 @@ function renderProjectRow(project, options = {}) {
       <button class="danger icon-text" type="button" data-delete-project="${project.id}"><i data-lucide="trash-2"></i>Excluir</button>
     </div>
   `;
+
+  if (state.currentSection === "lens") {
+    return `
+      <tr class="project-row" data-view-project="${project.id}" tabindex="0">
+        <td>${escapeHtml(project.companyName)}</td>
+        <td>${escapeHtml(project.partner)}</td>
+        <td>${escapeHtml(project.order)}</td>
+        <td>${escapeHtml(project.city)}</td>
+        <td>${formatDate(project.mainDate)}</td>
+        <td>${escapeHtml(project.month)}</td>
+        <td>1</td>
+        <td>${actions}</td>
+      </tr>`;
+  }
 
   if (state.currentSection === "vacancy") {
     return `
@@ -2333,6 +2413,7 @@ function getFilteredProjects() {
 }
 
 function getProjectSection(project) {
+  if (project.type === LENS_TYPE) return "lens";
   if (project.status === "Aguardando") return "waiting";
   if (project.status === "Negado") return "denied";
   if (project.type === "Desocupação" && project.status === "Concluído") return "vacancy";
@@ -2340,6 +2421,9 @@ function getProjectSection(project) {
 }
 
 function getProjectMeta(project) {
+  if (project.type === LENS_TYPE) {
+    return { countLabel: "", hasAlert: false, isFinalized: true, canDeny: false, statusBadge: "-" };
+  }
   if (project.status === "Aguardando") {
     if (project.poleExchange) {
       return {
@@ -2472,6 +2556,7 @@ function getDateSortTime(value, direction) {
 function openProjectEditor(id) {
   const project = state.projects.find((item) => item.id === id);
   if (!project) return;
+  fillSelect($("#editType"), project.type === LENS_TYPE ? [LENS_TYPE] : TYPES.filter((type) => type !== LENS_TYPE), "Selecione");
   $("#editProjectId").value = project.id;
   $("#editCompany").value = project.companyName;
   $("#editPartner").value = project.partner;
@@ -2507,18 +2592,16 @@ function openProjectDetails(id) {
   const details = [
     ["Empresa", project.companyName, 5],
     ["Parceiro", project.partner, 3],
-    ["Valor do ponto", formatMoney(project.pointValue), 4],
+    ...(project.type !== LENS_TYPE ? [["Valor do ponto", formatMoney(project.pointValue), 4]] : []),
     ["Ordem de venda", project.order],
-    ["Carta", project.letter],
+    ...(project.type !== LENS_TYPE ? [["Carta", project.letter]] : []),
     ["Município", project.city],
-    ["Tipo", project.type],
-    ["Parecer", project.opinion],
-    ["Status", project.status],
+    ...(project.type !== LENS_TYPE ? [["Tipo", project.type], ["Parecer", project.opinion], ["Status", project.status]] : []),
     ...(project.status === "Aguardando" ? [["Troca de postes?", project.poleExchange ? "Sim" : "Não"]] : []),
     [getDateLabel(resolveDateKind(project.type, project.status)), formatDate(project.mainDate)],
     ["Mês de referência", project.month],
     ["Quantidade de postes", formatInteger(project.poles)],
-    ["Valor multiplicado", formatMoney(project.multipliedValue)],
+    ...(project.type !== LENS_TYPE ? [["Valor multiplicado", formatMoney(project.multipliedValue)]] : []),
     ...(project.type === "Desocupação" && project.status === "Concluído"
       ? [["Data do envio da carta", formatDate(project.vacancyLetterDate), 6]]
       : []),
@@ -2528,7 +2611,7 @@ function openProjectDetails(id) {
       : []),
   ];
 
-  $("#projectDetailsTitle").textContent = `Projeto ${project.order || ""}`.trim();
+  $("#projectDetailsTitle").textContent = `${project.type === LENS_TYPE ? LENS_TYPE : "Projeto"} ${project.order || ""}`.trim();
   $("#projectDetailsGrid").innerHTML = details
     .map(([label, value, span = 3], index) => `
       <div class="field span-${span}">
@@ -2545,6 +2628,7 @@ function closeProjectDetails() {
 }
 
 function toggleEditConditionalFields() {
+  toggleLensFields("edit");
   const type = $("#editType").value;
   const status = $("#editStatus").value;
   $("#editVacancyLetterField").classList.toggle("hidden", !(type === "Desocupação" && status === "Concluído"));
@@ -2574,7 +2658,7 @@ function submitProjectEdit(event) {
   const pointValue = sameCompany && Number.isFinite(originalPointValue) && originalPointValue > 0
     ? originalPointValue
     : company.pointValue;
-  const updated = {
+  const updated = applyLensRules({
     ...original,
     companyId: company.id,
     companyName: company.name,
@@ -2596,7 +2680,7 @@ function submitProjectEdit(event) {
     neDate: status === "Negado" ? $("#editNeDate").value : "",
     vacancyLetterDate: type === "Desocupação" && status === "Concluído" ? $("#editVacancyLetterDate").value : "",
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   const errors = validateProject(updated);
   if (errors.length) {
@@ -2736,6 +2820,7 @@ function calculateMultiplied(pointValue, poles) {
 }
 
 function shouldUpdateProjectPointValueFromCompany(project, now = new Date()) {
+  if (project.type === LENS_TYPE) return false;
   const projectDate = getProjectPriceReferenceDate(project);
   if (!projectDate) return false;
   const projectYear = Number(projectDate.slice(0, 4));
@@ -3008,7 +3093,7 @@ function importProjects(event) {
       const mainDate = resolveImportedMainDate(row, type, status);
       const poles = parseCsvInteger(getCsvValue(row, ["quantidade de postes", "postes", "qtd postes"]));
       const pointValue = Number.isFinite(rowPointValue) && rowPointValue > 0 ? rowPointValue : company.pointValue;
-      const project = {
+      const project = applyLensRules({
         id: uid("project"),
         companyId: company.id,
         companyName: company.name,
@@ -3031,7 +3116,7 @@ function importProjects(event) {
         vacancyLetterDate: resolveImportedVacancyLetterDate(row, type),
         createdAt: new Date(importStartedAt + index).toISOString(),
         updatedAt: new Date(importStartedAt + index).toISOString(),
-      };
+      });
 
       const rowErrors = validateProject(project, (name) => findCompanyByNameIn(workingCompanies, name));
       if (rowErrors.length) {
@@ -3058,6 +3143,9 @@ function importProjects(event) {
 }
 
 function resolveImportedMainDate(row, type, status) {
+  if (type === LENS_TYPE) {
+    return normalizeCsvDate(getCsvValue(row, ["data de aprovação", "data de aprovacao", "data aprovação", "data aprovacao", "data principal", "data"])) || "";
+  }
   if (status === "Aguardando" || status === "Negado") {
     return (
       normalizeCsvDate(
@@ -3186,6 +3274,7 @@ function exportProjects() {
     "asc"
   );
   const headersBySection = {
+    lens: ["Ordem de venda", "Empresa", "Tipo", "Mês de referência", "Parceiro", "Município", "Data de aprovação", "Postes"],
     occupation: [
       "Ordem de venda",
       "Empresa",
@@ -3263,6 +3352,7 @@ function exportProjects() {
       "Multiplicação ponto": formatNumberForInput(project.multipliedValue),
       Carta: project.letter,
       Município: project.city,
+      "Data de aprovação": project.type === LENS_TYPE ? project.mainDate : "",
       ...(isVacancy ? { "Data de solicitação": project.mainDate } : {}),
       ...(isDenied || isWaiting ? { "Data de notificação": project.mainDate } : {}),
       ...(isDenied ? { "Data transformado em NE": project.neDate } : {}),

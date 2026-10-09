@@ -1890,6 +1890,15 @@ input[readonly] {
   font-size: 12px;
 }
 
+.projects-table-lens .col-company { width: 19%; }
+.projects-table-lens .col-partner { width: 10%; }
+.projects-table-lens .col-order { width: 9%; }
+.projects-table-lens .col-city { width: 18%; }
+.projects-table-lens .col-date { width: 13%; }
+.projects-table-lens .col-month { width: 9%; }
+.projects-table-lens .col-poles { width: 5%; }
+.projects-table-lens .col-actions { width: 17%; }
+
 .projects-table-occupation .col-company {
   width: 12%;
 }

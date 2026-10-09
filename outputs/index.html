@@ -464,6 +464,10 @@
             <section class="register-mode active" id="single-register">
               <div class="register-layout">
                 <form class="form-grid premium-form" id="singleProjectForm">
+                  <div class="field wide-all">
+                    <label for="singleCategory">Cadastro</label>
+                    <select id="singleCategory"><option value="project">Projeto</option><option value="lens">Caixa lente</option></select>
+                  </div>
                   <div class="section-title wide-all">
                     <span></span>
                     <i data-lucide="circle-dot"></i>
@@ -586,6 +590,10 @@
             <section class="register-mode" id="batch-register">
               <form id="batchProjectForm" class="dark-section">
                 <div class="form-grid premium-form">
+                  <div class="field wide-all">
+                    <label for="batchCategory">Cadastro</label>
+                    <select id="batchCategory"><option value="project">Projeto</option><option value="lens">Caixa lente</option></select>
+                  </div>
                   <div class="section-title wide-all">
                     <span></span>
                     <i data-lucide="layers"></i>
@@ -659,10 +667,10 @@
                     <thead>
                       <tr>
                         <th>Ordem de venda</th>
-                        <th>Carta</th>
+                        <th class="batch-letter-col">Carta</th>
                         <th>Quantidade de postes</th>
                         <th class="batch-city-col">Município</th>
-                        <th>Valor multiplicado</th>
+                        <th class="batch-value-col">Valor multiplicado</th>
                         <th>Ações</th>
                       </tr>
                     </thead>
@@ -751,6 +759,7 @@
               <button class="query-tab" data-section="vacancy" type="button">Desocupação <span>0</span></button>
               <button class="query-tab" data-section="waiting" type="button">Aguardando <span>0</span></button>
               <button class="query-tab" data-section="denied" type="button">Negados <span>0</span></button>
+              <button class="query-tab" data-section="lens" type="button">Caixa lente <span>0</span></button>
             </div>
 
             <section class="table-card">
