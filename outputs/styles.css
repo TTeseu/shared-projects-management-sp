@@ -1890,6 +1890,13 @@ input[readonly] {
   font-size: 12px;
 }
 
+.projects-table th.heading-order {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
 .projects-table-lens .col-company { width: 19%; }
 .projects-table-lens .col-partner { width: 10%; }
 .projects-table-lens .col-order { width: 9%; }

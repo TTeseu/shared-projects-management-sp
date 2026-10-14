@@ -30,6 +30,9 @@ const MUNICIPALITIES = [
 ];
 
 const LENS_TYPE = "Caixa lente";
+const AE_START_DATE = "2026-10-14";
+const LEGACY_ORDER_LABEL = "Ordem de venda";
+const MIXED_ORDER_LABEL = "Ordem de venda / AE";
 const TYPES = ["Ocupação de postes novos", "Regularização", "Desocupação", LENS_TYPE];
 const OPINIONS = ["ISR", "DSR"];
 const STATUSES = ["Concluído", "Negado", "Aguardando"];
@@ -640,6 +643,14 @@ function bindProjectForms() {
   setupCompanyAutocomplete("batch");
   setupCompanyAutocomplete("edit");
 
+  ["single", "batch", "edit"].forEach((prefix) => {
+    $(`#${prefix}MainDate`).addEventListener("input", () => updateOrderLabel(prefix));
+    $(`#${prefix}MainDate`).addEventListener("change", () => updateOrderLabel(prefix));
+    updateOrderLabel(prefix);
+  });
+  $("#editVacancyLetterDate").addEventListener("input", () => updateOrderLabel("edit"));
+  $("#editVacancyLetterDate").addEventListener("change", () => updateOrderLabel("edit"));
+
   ["single", "batch"].forEach((prefix) => {
     $(`#${prefix}Category`).addEventListener("change", () => {
       toggleLensFields(prefix);
@@ -863,6 +874,45 @@ function updateMainDateLabel(prefix) {
   const label = $(`#${prefix}MainDateLabel`);
   if (!label) return;
   label.textContent = getDateLabel(resolveDateKind(type, status));
+  updateOrderLabel(prefix);
+}
+
+function getOrderLabelForDate(date) {
+  return date && date < AE_START_DATE ? LEGACY_ORDER_LABEL : "AE";
+}
+
+function getProjectOrderLabel(project) {
+  return getOrderLabelForDate(getProjectPeriodDate(project) || (project.createdAt || "").slice(0, 10) || todayInputValue());
+}
+
+function getOrderLabelForPeriod(year, months = null) {
+  if (!year) return MIXED_ORDER_LABEL;
+  const indexes = (months || MONTHS).map((month) => MONTHS.indexOf(month) + 1).filter((index) => index > 0);
+  const first = `${year}-${String(Math.min(...indexes)).padStart(2, "0")}-01`;
+  const last = `${year}-${String(Math.max(...indexes)).padStart(2, "0")}-31`;
+  if (last < AE_START_DATE) return LEGACY_ORDER_LABEL;
+  if (first >= AE_START_DATE) return "AE";
+  return MIXED_ORDER_LABEL;
+}
+
+function getQueryOrderLabel() {
+  return getOrderLabelForPeriod($("#filterYear").value, getSelectedMonthFilters());
+}
+
+function updateOrderLabel(prefix) {
+  const type = isLensForm(prefix) ? LENS_TYPE : $(`#${prefix}Type`)?.value;
+  const status = $(`#${prefix}Status`)?.value;
+  const date = prefix === "edit" && type === "Desocupação" && status === "Concluído"
+    ? $("#editVacancyLetterDate").value || $(`#${prefix}MainDate`).value
+    : $(`#${prefix}MainDate`).value;
+  const label = getOrderLabelForDate(date || todayInputValue());
+  if (prefix === "batch") {
+    $("#batchOrderLabel").textContent = label;
+    $$(".batch-order").forEach((input) => input.setAttribute("aria-label", label));
+  } else {
+    $(`label[for="${prefix}Order"]`).textContent = label;
+    $(`#${prefix}Order`).placeholder = label === "AE" ? "Informe a AE" : "Informe a ordem de venda";
+  }
 }
 
 function toggleReasonField(prefix) {
@@ -1096,6 +1146,7 @@ function addBatchRow(data = {}) {
   fillSelect($(".batch-city", tr), MUNICIPALITIES, "Selecione");
   $(".batch-city", tr).value = data.city || "";
   $(".batch-order", tr).addEventListener("input", (event) => sanitizeDigitsInput(event.target));
+  $(".batch-order", tr).setAttribute("aria-label", $("#batchOrderLabel").textContent);
   $(".batch-poles", tr).addEventListener("input", updateBatchCalculatedValues);
   $$(".batch-order, .batch-letter, .batch-poles", tr).forEach((input) => {
     input.addEventListener("paste", handleBatchPaste);
@@ -1209,8 +1260,9 @@ function validateProject(project, companyLookup = findCompanyByName) {
   if (!project.companyName || !companyLookup(project.companyName)) errors.push("Selecione uma empresa cadastrada.");
   if (!project.partner) errors.push("Parceiro é obrigatório.");
   if (!lens && (!Number.isFinite(project.pointValue) || project.pointValue <= 0)) errors.push("Valor do ponto inválido.");
-  if (!project.order) errors.push("Ordem de venda é obrigatória.");
-  if (project.order && !/^\d+$/.test(project.order)) errors.push("Ordem de venda deve conter somente números.");
+  const orderLabel = getProjectOrderLabel(project);
+  if (!project.order) errors.push(`${orderLabel} é obrigatória.`);
+  if (project.order && !/^\d+$/.test(project.order)) errors.push(`${orderLabel} deve conter somente números.`);
   if (!lens && !project.letter) errors.push("Carta é obrigatória.");
   if (!MUNICIPALITIES.includes(project.city)) errors.push("Selecione um município da lista oficial.");
   if (!TYPES.includes(project.type)) errors.push("Selecione um tipo válido.");
@@ -1384,6 +1436,7 @@ function renderAll() {
 
 function renderQueryView() {
   renderMonthComparisonControls();
+  $("label[for='filterOrder']").textContent = getQueryOrderLabel();
   renderSummaryCards();
   renderProjectTable();
 }
@@ -1548,6 +1601,8 @@ function getDashboardProjects() {
 }
 
 function renderDashboardCharts({ dashboardProjects }) {
+  const orderLabel = getOrderLabelForPeriod(state.dashboardYear);
+  $("#monthlyChartTitle").textContent = `${orderLabel === LEGACY_ORDER_LABEL ? "OVs" : orderLabel === "AE" ? "AEs" : "OVs / AEs"} abertas por mês`;
   const groups = getDashboardYearGroups(dashboardProjects);
   $("#dashStatusCharts").innerHTML = groups.map(({ year }) => `
     <section class="annual-chart-group" data-chart-year="${escapeAttr(year)}">
@@ -2126,9 +2181,9 @@ function renderProjectHead(options = {}) {
       "Ações",
     ],
   };
-  const activeColumns = columns[state.currentSection];
+  const activeColumns = columns[state.currentSection].map((column) => column === "Ordem" ? getQueryOrderLabel() : column);
   $("#projectsTableCols").innerHTML = activeColumns.map((column) => `<col class="col-${getProjectColumnKey(column)}" />`).join("");
-  $("#projectsTableHead").innerHTML = `<tr>${activeColumns.map((column) => `<th>${column}</th>`).join("")}</tr>`;
+  $("#projectsTableHead").innerHTML = `<tr>${activeColumns.map((column) => `<th class="heading-${getProjectColumnKey(column)}">${column}</th>`).join("")}</tr>`;
 }
 
 function getProjectColumnKey(column) {
@@ -2136,6 +2191,9 @@ function getProjectColumnKey(column) {
     Empresa: "company",
     Parceiro: "partner",
     Ordem: "order",
+    [LEGACY_ORDER_LABEL]: "order",
+    [MIXED_ORDER_LABEL]: "order",
+    AE: "order",
     Carta: "letter",
     Município: "city",
     Tipo: "type",
@@ -2593,7 +2651,7 @@ function openProjectDetails(id) {
     ["Empresa", project.companyName, 5],
     ["Parceiro", project.partner, 3],
     ...(project.type !== LENS_TYPE ? [["Valor do ponto", formatMoney(project.pointValue), 4]] : []),
-    ["Ordem de venda", project.order],
+    [getProjectOrderLabel(project), project.order],
     ...(project.type !== LENS_TYPE ? [["Carta", project.letter]] : []),
     ["Município", project.city],
     ...(project.type !== LENS_TYPE ? [["Tipo", project.type], ["Parecer", project.opinion], ["Status", project.status]] : []),
@@ -2611,7 +2669,7 @@ function openProjectDetails(id) {
       : []),
   ];
 
-  $("#projectDetailsTitle").textContent = `${project.type === LENS_TYPE ? LENS_TYPE : "Projeto"} ${project.order || ""}`.trim();
+  $("#projectDetailsTitle").textContent = `${project.type === LENS_TYPE ? LENS_TYPE : "Projeto"} ${getProjectOrderLabel(project)} ${project.order || ""}`.trim();
   $("#projectDetailsGrid").innerHTML = details
     .map(([label, value, span = 3], index) => `
       <div class="field span-${span}">
@@ -3099,7 +3157,7 @@ function importProjects(event) {
         companyName: company.name,
         partner: company.partner,
         pointValue,
-        order: getCsvValue(row, ["ordem de venda", "ordem"]).replace(/\D/g, ""),
+        order: getCsvValue(row, ["ae", "ordem de venda / ae", "ordem de venda/ae", "ordem de venda", "ordem", "ov"]).replace(/\D/g, ""),
         letter: getCsvValue(row, ["carta"]),
         city: normalizeFromList(getCsvValue(row, ["município", "municipio"]), MUNICIPALITIES),
         type,
@@ -3336,13 +3394,15 @@ function exportProjects() {
       "Postes",
     ],
   };
-  const headers = headersBySection[state.currentSection] || headersBySection.occupation;
+  const orderLabel = getQueryOrderLabel();
+  const headers = (headersBySection[state.currentSection] || headersBySection.occupation)
+    .map((header) => header === LEGACY_ORDER_LABEL ? orderLabel : header);
   const rows = projects.map((project) => {
     const isVacancy = project.type === "Desocupação";
     const isDenied = project.status === "Negado";
     const isWaiting = project.status === "Aguardando";
     return {
-      "Ordem de venda": project.order,
+      [orderLabel]: project.order,
       Empresa: project.companyName,
       Tipo: project.type,
       "Mês de referência": getProjectMonth(project),

@@ -267,7 +267,7 @@
               <section class="table-card chart-card">
                 <div class="table-toolbar">
                   <div>
-                    <h2>OVs abertas por mês</h2>
+                    <h2 id="monthlyChartTitle">OVs / AEs abertas por mês</h2>
                   </div>
                   <div class="chart-menu">
                     <button type="button" class="icon-button chart-menu-button" id="monthlyChartMenuBtn" data-year-menu-button aria-label="Selecionar ano do gráfico" aria-haspopup="menu" aria-expanded="false">
@@ -486,8 +486,8 @@
                     <input id="singlePointValue" name="pointValue" readonly required placeholder="Será preenchido automaticamente" />
                   </div>
                   <div class="field span-3 required">
-                    <label for="singleOrder">Ordem de venda</label>
-                    <input id="singleOrder" name="order" inputmode="numeric" pattern="[0-9]*" required placeholder="Informe a ordem de venda" />
+                    <label for="singleOrder">AE</label>
+                    <input id="singleOrder" name="order" inputmode="numeric" pattern="[0-9]*" required placeholder="Informe a AE" />
                   </div>
                   <div class="field span-3 required">
                     <label for="singleLetter">Carta</label>
@@ -666,7 +666,7 @@
                   <table class="data-table compact" id="batchRowsTable">
                     <thead>
                       <tr>
-                        <th>Ordem de venda</th>
+                        <th id="batchOrderLabel">AE</th>
                         <th class="batch-letter-col">Carta</th>
                         <th>Quantidade de postes</th>
                         <th class="batch-city-col">Município</th>
@@ -724,7 +724,7 @@
               </div>
               <div class="filters-grid">
                 <div class="field"><label for="filterCompany">Empresa</label><input id="filterCompany" autocomplete="off" placeholder="Digite para buscar empresa" /></div>
-                <div class="field"><label for="filterOrder">Ordem de venda</label><input id="filterOrder" /></div>
+                <div class="field"><label for="filterOrder">Ordem de venda / AE</label><input id="filterOrder" /></div>
                 <div class="field"><label for="filterLetter">Carta</label><input id="filterLetter" /></div>
                 <div class="field"><label for="filterCity">Município</label><select id="filterCity"></select></div>
                 <div class="field"><label for="filterType">Tipo</label><select id="filterType"></select></div>
@@ -958,7 +958,7 @@
                   <h2>Ocupação/Regularização</h2>
                   <p>Use para projetos aprovados/concluídos de ocupação de postes novos ou regularização.</p>
                   <ul class="column-list">
-                    <li>Ordem de venda</li>
+                    <li>Ordem de venda / AE</li>
                     <li>Empresa</li>
                     <li>Tipo</li>
                     <li>Mês de referência</li>
@@ -977,7 +977,7 @@
                   <h2>Desocupação</h2>
                   <p>Use para projetos de desocupação. A data da solicitação inicia o controle de 90 dias; a carta finaliza.</p>
                   <ul class="column-list">
-                    <li>Ordem de venda</li>
+                    <li>Ordem de venda / AE</li>
                     <li>Empresa</li>
                     <li>Tipo</li>
                     <li>Mês de referência</li>
@@ -997,7 +997,7 @@
                   <h2>Negados</h2>
                   <p>Use para projetos já negados. Informe o motivo e a data em que virou NE.</p>
                   <ul class="column-list">
-                    <li>Ordem de venda</li>
+                    <li>Ordem de venda / AE</li>
                     <li>Empresa</li>
                     <li>Tipo</li>
                     <li>Mês de referência</li>
@@ -1099,7 +1099,7 @@
           </div>
           <div class="field span-3 required"><label for="editPartner">Parceiro</label><input id="editPartner" readonly required /></div>
           <div class="field span-4 required"><label for="editPointValue">Valor do ponto</label><input id="editPointValue" readonly required /></div>
-          <div class="field span-3 required"><label for="editOrder">Ordem de venda</label><input id="editOrder" inputmode="numeric" pattern="[0-9]*" required /></div>
+          <div class="field span-3 required"><label for="editOrder">AE</label><input id="editOrder" inputmode="numeric" pattern="[0-9]*" required /></div>
           <div class="field span-3 required"><label for="editLetter">Carta</label><input id="editLetter" required /></div>
           <div class="field span-3 required"><label for="editCity">Município</label><select id="editCity" required></select></div>
           <div class="field span-3 required"><label for="editType">Tipo</label><select id="editType" required></select></div>
